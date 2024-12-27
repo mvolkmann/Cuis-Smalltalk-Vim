@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 3:08:34 pm'!
+'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 4:12:06 pm'!
 'Description '!
-!provides: 'Vim' 1 23!
+!provides: 'Vim' 1 25!
 SystemOrganization addCategory: #Vim!
 
 
@@ -155,7 +155,7 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 15:08:24'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 15:56:46'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| block char handled key newMode value |
@@ -186,22 +186,18 @@ processVimKeystrokeEvent: evt
 				ifFalse: [
 					key := value < 32 ifTrue: value ifFalse: char.
 					block := VimMappings at: key ifAbsent: nil.
-					block logAs: 'block'.
 					block ifNotNil: [
 						vimCount ifNil: [ vimCount := 1 ].
 						vimCount timesRepeat: [ newMode := block value: evt value: self ].
 						newMode isSymbol ifTrue: [
 							vimMode := newMode.
 							'Vim mode is {1}.' format: { vimMode} :: print.
-							"vimMode = #command
-								ifTrue: [ self color: Color yellow ]
-								ifFalse: [ self color: Color white ]."
 						].
 					
 						"Reset all the Vim-related instance variables."
-						vimCount := 1.
+						"vimCount := 1.
 						vimOperator := nil.
-						vimMotion := nil.
+						vimMotion := nil."
 					].
 				].
 		]
