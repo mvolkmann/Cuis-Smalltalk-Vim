@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 2:04:35 pm'!
+'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 3:08:34 pm'!
 'Description '!
-!provides: 'Vim' 1 20!
+!provides: 'Vim' 1 23!
 SystemOrganization addCategory: #Vim!
 
 
@@ -155,10 +155,10 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:04:33'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 15:08:24'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
-	| block char handled newMode value |
+	| block char handled key newMode value |
 	
 	"See the TextEditor method sameColumn:newLine:forward:."
 	"pointBlock := editor pointBlock.
@@ -171,7 +171,7 @@ processVimKeystrokeEvent: evt
 
 	char := evt keyCharacter.
 	value := evt keyValue.
-	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } print."
+	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } :: print."
 	
 	handled := true. "assume for now"
 
@@ -184,15 +184,24 @@ processVimKeystrokeEvent: evt
 						ifFalse: [ vimCount := vimCount asString, char asString :: asNumber ].
 				]
 				ifFalse: [
-					block := VimMappings at: char ifAbsent: nil.
+					key := value < 32 ifTrue: value ifFalse: char.
+					block := VimMappings at: key ifAbsent: nil.
+					block logAs: 'block'.
 					block ifNotNil: [
 						vimCount ifNil: [ vimCount := 1 ].
-						vimCount timesRepeat: [ newMode := block value: evt value: editor ].
+						vimCount timesRepeat: [ newMode := block value: evt value: self ].
 						newMode isSymbol ifTrue: [
 							vimMode := newMode.
 							'Vim mode is {1}.' format: { vimMode} :: print.
+							"vimMode = #command
+								ifTrue: [ self color: Color yellow ]
+								ifFalse: [ self color: Color white ]."
 						].
+					
+						"Reset all the Vim-related instance variables."
 						vimCount := 1.
+						vimOperator := nil.
+						vimMotion := nil.
 					].
 				].
 		]
@@ -201,12 +210,29 @@ processVimKeystrokeEvent: evt
 				ifTrue: [
 					vimMode := #command.
 					'Vim mode is {1}.' format: { vimMode} :: print.
+					"self color: Color yellow."
 				]
 				ifFalse: [ handled := false ]
 		].
 
 	evt wasHandled: handled.	
 	! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:49:54'!
+vimMotion
+	^ vimMotion! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:51:46'!
+vimMotion: aString
+	vimMotion := aString! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:49:42'!
+vimOperator
+	^ vimOperator! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:51:34'!
+vimOperator: aCharacter
+	vimOperator := aCharacter! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:34:32'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
