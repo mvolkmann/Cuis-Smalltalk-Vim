@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 10:28:16 am'!
+'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 1:36:09 pm'!
 'Description '!
-!provides: 'Vim' 1 15!
+!provides: 'Vim' 1 19!
 SystemOrganization addCategory: #Vim!
 
 
@@ -110,7 +110,7 @@ processKeystrokeEvent: evt forEditor: editor
 	evt wasHandled: handled.	
 	! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 08:53:31'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:35:13'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image."
 	| action |
@@ -121,7 +121,7 @@ processKeystrokeEvent: evt
 		"The next two lines were copied from handleInteraction:."
 		self selectionChanged.
 		self updateFromTextComposition.
-		^ nil
+		^ nil "Don't run the rest of the code in this method."
 	].
 
 	(acceptOn = #enter and: [evt isReturnKey]) ifTrue: [^ self acceptContents].
@@ -145,7 +145,7 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 10:27:18'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:35:46'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| block char handled newMode value |
@@ -161,15 +161,15 @@ processVimKeystrokeEvent: evt
 
 	char := evt keyCharacter.
 	value := evt keyValue.
-	'keyCharacter = {1}, keyValue = {2}' format: { char. value } print.
+	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } print."
 	
 	handled := true. "assume for now"
 
 	vimMode = #command
 		ifTrue: [
-			block := vimMappings at: char ifAbsent: nil.
+			block := VimMappings at: char ifAbsent: nil.
 			block ifNotNil: [
-				newMode := block value: evt.
+				newMode := block value: evt value: editor.
 				newMode isSymbol ifTrue: [
 					vimMode := newMode.
 					'Vim mode is {1}.' format: { vimMode} :: print.
@@ -188,13 +188,14 @@ processVimKeystrokeEvent: evt
 	evt wasHandled: handled.	
 	! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 09:48:34'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:34:32'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
 	| char shift indices newPosition vimKey |
 
 	char := aKeyboardEvent keyCharacter.
+	"This Vim keys require the shift key, but we don't to select text when they are used."
 	vimKey := char = $^ or: [char = $$].
 	shift := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
 	indices := self
