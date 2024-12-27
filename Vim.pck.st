@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 1:36:09 pm'!
+'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 2:04:35 pm'!
 'Description '!
-!provides: 'Vim' 1 19!
+!provides: 'Vim' 1 20!
 SystemOrganization addCategory: #Vim!
 
 
@@ -110,6 +110,16 @@ processKeystrokeEvent: evt forEditor: editor
 	evt wasHandled: handled.	
 	! !
 
+!Object methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:00:25'!
+logAs: aString
+    "Writes logging information about receiver to the Transcript."
+    | message sender template |
+
+    sender := thisContext sender.
+    template := 'In {1}, {2} is a {3} = {4}'.
+    message := template format: {sender. aString. self class name. self}.
+    message print.! !
+
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:35:13'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image."
@@ -145,7 +155,7 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:35:46'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:04:33'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| block char handled newMode value |
@@ -167,14 +177,24 @@ processVimKeystrokeEvent: evt
 
 	vimMode = #command
 		ifTrue: [
-			block := VimMappings at: char ifAbsent: nil.
-			block ifNotNil: [
-				newMode := block value: evt value: editor.
-				newMode isSymbol ifTrue: [
-					vimMode := newMode.
-					'Vim mode is {1}.' format: { vimMode} :: print.
+			char isDigit
+				ifTrue: [
+					vimCount = 1
+						ifTrue: [ vimCount := char digitValue ]
+						ifFalse: [ vimCount := vimCount asString, char asString :: asNumber ].
+				]
+				ifFalse: [
+					block := VimMappings at: char ifAbsent: nil.
+					block ifNotNil: [
+						vimCount ifNil: [ vimCount := 1 ].
+						vimCount timesRepeat: [ newMode := block value: evt value: editor ].
+						newMode isSymbol ifTrue: [
+							vimMode := newMode.
+							'Vim mode is {1}.' format: { vimMode} :: print.
+						].
+						vimCount := 1.
+					].
 				].
-			].
 		]
 		ifFalse: [
 			evt isEsc
