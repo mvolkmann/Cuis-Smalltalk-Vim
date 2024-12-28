@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:21:59 pm'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:32:39 pm'!
 'Description '!
-!provides: 'Vim' 1 48!
+!provides: 'Vim' 1 50!
 SystemOrganization addCategory: #Vim!
 
 
@@ -19,9 +19,9 @@ VimEditor class
 I probably do not want to keep this class.
 All its functionality was moved to InnerTextMorph.!
 
-!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/27/2024 08:13:27'!
+!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/28/2024 13:29:07'!
 initialize
-	| contents editor font labelMorph textComposition textModel |
+	| contents editor font labelMorph textModel |
 	
 	super initialize.
 	
@@ -45,7 +45,6 @@ third line'.
 	"font := FontFamily familyName: 'Alex Brush' pointSize: 24."
 	editor := textModelMorph editor.
 	editor defaultFont: font.
-	textComposition := editor textComposition.
 	
 	"This block is called AFTER regular processing!!
 	We need to run this block BEFORE regular processing
@@ -60,23 +59,10 @@ third line'.
 	
 	! !
 
-!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/28/2024 11:44:32'!
+!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/28/2024 13:30:24'!
 processKeystrokeEvent: evt forEditor: editor
-	| char columnNumber handled line lines lineNumber pointBlock textComposition value |
+	| char handled value |
 	
-	evt logAs: 'evt'.
-	textComposition := editor textComposition.
-
-	"See the TextEditor method sameColumn:newLine:forward:."
-	pointBlock := editor pointBlock.
-	columnNumber := pointBlock stringIndex - pointBlock textLine first. 6 .
-	lines := textComposition lines.
-	"lineCount := textComposition numberOfLines."
-	lineNumber  := textComposition lineIndexFor: (pointBlock stringIndex).
-	line := lines at: lineNumber.
-	columnNumber := pointBlock stringIndex - line first.
-	"self halt."
-
 	char := evt keyCharacter.
 	value := evt keyValue.
 	value logAs: 'value'.
@@ -517,9 +503,3 @@ openLineBelow: evt
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:21:15'!
 deselect
 	markBlock := pointBlock.! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 08:52:30'!
-textComposition
-	"This instance variable is not exposed in the base image."
-
-	^ textComposition! !
