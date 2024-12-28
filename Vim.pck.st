@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 8:10:23 am'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 8:33:19 am'!
 'Description '!
-!provides: 'Vim' 1 36!
+!provides: 'Vim' 1 37!
 SystemOrganization addCategory: #Vim!
 
 
@@ -253,7 +253,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:08:28'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:33:00'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveToStart moveUp reset |
@@ -403,10 +403,15 @@ initialize
 		
 		#yy -> [ :evt :itm |
 			"Yank (copy) current line."
-			| editor |
+			| editor index |
 			editor := itm editor.
+			index := editor pointBlock stringIndex.
+			"This moves the cursor to the end of the line."
 			editor selectLine.
 			editor copySelection.
+			editor deselect.
+			"Restore cursor position."
+			editor moveCursor: [ :position | index ] forward: false event: evt.
 			reset value: itm.
 		].
 	
@@ -455,6 +460,10 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 				selectMark: (indices at: #fixed)
 				point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:21:15'!
+deselect
+	markBlock := pointBlock.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 08:52:30'!
 textComposition
