@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 12:52:26 pm'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:12:10 pm'!
 'Description '!
-!provides: 'Vim' 1 46!
+!provides: 'Vim' 1 47!
 SystemOrganization addCategory: #Vim!
 
 
@@ -249,7 +249,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:52:06'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:07:37'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
@@ -363,7 +363,7 @@ initialize
 
 		'^' asSymbol -> [ :evt :itm |
 			"Move to first non-whitespace character in current line."
-			itm editor cursorHome: evt.
+			itm editor cursorFirstNonBlankOfLine: evt.
 			reset value: itm.
 		].
 
@@ -399,6 +399,23 @@ cursorEndOfLine: evt
 	"Move cursor to end of line."
 
 	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:12:03'!
+cursorFirstNonBlankOfLine: evt
+	"Move cursor to first non-blank character in line."
+	| currentIndex index pointBlock space stopIndex text |
+
+	"editor pointBlock returns a CharacterBlock object."
+	pointBlock := self pointBlock.
+	index := pointBlock textLine first.
+	stopIndex := pointBlock textLine last.
+
+	text := self text.
+	space := Character space.
+	[ (text at: index) = space and: [ index < stopIndex ] ] whileTrue: [ index := index + 1 ].
+	
+	currentIndex := pointBlock stringIndex.
+	self moveCursor:  [ :position | index ] forward: (index > currentIndex) event: evt.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:24:24'!
 cursorNextWord: evt
