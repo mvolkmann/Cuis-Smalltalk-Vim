@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 11:34:02 am'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 11:39:47 am'!
 'Description '!
-!provides: 'Vim' 1 39!
+!provides: 'Vim' 1 41!
 SystemOrganization addCategory: #Vim!
 
 
@@ -248,7 +248,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:33:48'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:39:25'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveToStart moveUp reset |
@@ -296,29 +296,13 @@ initialize
 
 		#dd -> [ :evt :itm |
 			"Delete line under cursor."
-			| editor textLine |
-			editor := itm editor.
-			"editor pointBlock returns a CharacterBlock object."
-			textLine := editor pointBlock textLine.
-			editor selectFrom: textLine first to: textLine last.
-			editor cut.
+			itm editor deleteCursorLine: evt.
 			reset value: itm.
 		].
 	
 		#dw -> [ :evt :itm |
 			"Delete word under cursor."
-			| allText atEndOfLine editor startIndex stopIndex range |
-
-			editor := itm editor.
-			"editor pointBlock returns a CharacterBlock object."
-			startIndex := editor pointBlock stringIndex.
-			range := editor wordRangeIncluding: startIndex.
-			stopIndex := range last.
-			allText := editor text.
-			atEndOfLine := allText at: stopIndex + 1 :: isLineSeparator.
-			atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
-			editor selectFrom: startIndex to: stopIndex.
-			editor cut.
+			itm editor deleteCursorWord: evt.
 			reset value: itm.
 		].
 
@@ -440,6 +424,32 @@ cursorPreviousWord: evt
 	"Move cursor to beginning of previous word."
 
 	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:35:46'!
+deleteCursorLine: evt
+	"Delete line containing cursor."
+	| textLine |
+
+	"editor pointBlock returns a CharacterBlock object."
+	textLine := self pointBlock textLine.
+	self selectFrom: textLine first to: textLine last.
+	self cut.
+! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:38:52'!
+deleteCursorWord: evt
+	"Delete word containing cursor."
+	| allText atEndOfLine range startIndex stopIndex |
+
+	"editor pointBlock returns a CharacterBlock object."
+	startIndex := self pointBlock stringIndex.
+	range := self wordRangeIncluding: startIndex.
+	stopIndex := range last.
+	allText := self text.
+	atEndOfLine := allText at: stopIndex + 1 :: isLineSeparator.
+	atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
+	self selectFrom: startIndex to: stopIndex.
+	self cut.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:35:58'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
