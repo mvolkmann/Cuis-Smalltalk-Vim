@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 7:29:51 am'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 8:10:23 am'!
 'Description '!
-!provides: 'Vim' 1 32!
+!provides: 'Vim' 1 36!
 SystemOrganization addCategory: #Vim!
 
 
@@ -120,6 +120,21 @@ logAs: aString
     message := template format: {sender. aString. self class name. self}.
     message print.! !
 
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:23:20'!
+initialize
+	super initialize.
+	wrapFlag := true.
+	acceptOn := #none.
+	hasUnacceptedEdits := false.
+	hasEditingConflicts := false.
+	askBeforeDiscardingEdits := true.
+	needsFit := false.
+
+	vimCommand := ''.
+	vimCount := nil.
+	vimMode := #insert.
+! !
+
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:21:56'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image."
@@ -155,7 +170,7 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:25:51'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:32:41'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char handled key mapping newMode value |
@@ -194,8 +209,9 @@ processVimKeystrokeEvent: evt
 					mapping := VimMappings at: key ifAbsent: nil.
 					mapping
 						ifNil: [
-							"Got invalid key sequence, so clear command."
-							vimCommand := ''
+							"Got invalid key sequence, so clear count and command."
+							vimCount := nil.
+							vimCommand := ''.
 						]
 						ifNotNil: [
 							mapping isBlock ifTrue: [
@@ -237,7 +253,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:21:38'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:08:28'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveToStart moveUp reset |
@@ -353,6 +369,11 @@ initialize
 			#insert. 
 		].
 
+		#p -> [ :evt :itm |
+			itm editor paste.
+			reset value: itm.
+		].
+
 		#w -> [ :evt :itm |
 			"Move to next word."
 			itm editor
@@ -362,6 +383,33 @@ initialize
 			reset value: itm.
 		].
 
+		#x -> [ :evt :itm |
+			"Delete character under cursor."
+			| editor lastIndex pointBlock startIndex |
+			editor := itm editor.
+			pointBlock := editor pointBlock.
+			startIndex := pointBlock stringIndex.
+			lastIndex := pointBlock textLine last.
+			lastIndex logAs: 'lastIndex'.
+			startIndex > lastIndex ifTrue: [startIndex := startIndex - 1].
+			startIndex logAs: 'startIndex'.
+			editor selectFrom: startIndex to: startIndex.
+			"Why does the screen flash when deleting a space character and it fails to do so?"
+			editor cut.
+			reset value: itm.
+		].
+
+		#y -> true.
+		
+		#yy -> [ :evt :itm |
+			"Yank (copy) current line."
+			| editor |
+			editor := itm editor.
+			editor selectLine.
+			editor copySelection.
+			reset value: itm.
+		].
+	
 		'0' asSymbol -> [ :evt :itm |
 			"Move to start of current line."
 			moveToStart value: evt value: itm.
