@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 6:36:38 pm'!
+'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 7:30:01 pm'!
 'Description '!
-!provides: 'Vim' 1 26!
+!provides: 'Vim' 1 29!
 SystemOrganization addCategory: #Vim!
 
 
@@ -155,7 +155,7 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 15:56:46'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 19:29:06'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| block char handled key newMode value |
@@ -175,13 +175,15 @@ processVimKeystrokeEvent: evt
 	
 	handled := true. "assume for now"
 
-	vimMode = #command
+	"Only treat the zero character as a command if vimCount is not set.
+	Otherwise it can be appended to vimCount to set its value to a number like 10 or 20."
+	vimMode = #command and: [ char ~= $0 or: [ vimCount isNil ]] ::
 		ifTrue: [
-			char isDigit
+			char isDigit and: [ char ~= $0 or: [ vimCount notNil ] ] ::
 				ifTrue: [
-					vimCount = 1
-						ifTrue: [ vimCount := char digitValue ]
-						ifFalse: [ vimCount := vimCount asString, char asString :: asNumber ].
+					vimCount
+						ifNil: [ vimCount := char digitValue ]
+						ifNotNil: [ vimCount := vimCount asString, char asString :: asNumber ].
 				]
 				ifFalse: [
 					key := value < 32 ifTrue: value ifFalse: char.
@@ -193,11 +195,6 @@ processVimKeystrokeEvent: evt
 							vimMode := newMode.
 							'Vim mode is {1}.' format: { vimMode} :: print.
 						].
-					
-						"Reset all the Vim-related instance variables."
-						"vimCount := 1.
-						vimOperator := nil.
-						vimMotion := nil."
 					].
 				].
 		]
@@ -206,13 +203,16 @@ processVimKeystrokeEvent: evt
 				ifTrue: [
 					vimMode := #command.
 					'Vim mode is {1}.' format: { vimMode} :: print.
-					"self color: Color yellow."
 				]
 				ifFalse: [ handled := false ]
 		].
 
 	evt wasHandled: handled.	
 	! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 19:19:54'!
+vimCount: aNumber
+	vimCount := aNumber! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:30:14'!
 vimMode
@@ -233,6 +233,126 @@ vimOperator
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:51:34'!
 vimOperator: aCharacter
 	vimOperator := aCharacter! !
+
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/27/2024 19:29:32'!
+initialize
+	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
+	| reset |
+	
+	"Reset all the Vim-related instance variables."
+	reset := [ :itm |					
+		itm vimCount: nil.
+		itm vimOperator: nil.
+		itm vimMotion:​ nil.
+	].
+		
+	VimMappings := Dictionary newFrom: {
+		"itm is short for InnerTextMorph."
+		$a -> [ :evt :itm | #append ].
+		$A -> [ :evt :itm |
+			itm editor cursorEnd: evt.
+			#append
+		].
+
+		$d -> [ :evt :itm |
+			itm vimOperator = $d
+				ifTrue: [
+					"Delete current line under cursor."
+					| editor textLine |
+					editor := itm editor.
+					"editor pointBlock returns a CharacterBlock object."
+					textLine := editor pointBlock textLine.
+					editor selectFrom: textLine first to: textLine last.
+					editor cut.
+					reset value: itm.
+				]
+				ifFalse: [
+					"Save the delete operator, waiting for motion."
+					itm vimOperator: $d
+				].
+		].
+
+		$i -> [ :evt :itm | #insert ].
+		$I -> [ :evt :itm |
+			itm editor cursorHome: evt.
+			#insert
+		].
+
+		$h -> [ :evt :itm | itm editor cursorLeft: evt. reset value: itm ].
+		28 -> [ :evt :itm | itm editor cursorLeft: evt. reset value: itm ].
+		$j -> [ :evt :itm | itm editor cursorDown: evt. reset value: itm ].
+		31 -> [ :evt :itm | itm editor cursorDown: evt. reset value: itm ].
+		$k -> [ :evt :itm | itm editor cursorUp: evt. reset value: itm ].
+		30 -> [ :evt :itm | itm editor cursorUp: evt. reset value: itm ].		
+		$l -> [ :evt :itm | itm editor cursorRight: evt. reset value: itm ].
+		29 -> [ :evt :itm | itm editor cursorRight: evt. reset value: itm ].
+		
+		$o -> [ :evt :itm |
+			| editor |
+			editor := itm editor.
+			editor cursorEnd: evt.
+			editor replaceSelectionWith: (Character newLineCharacter asString).
+			#append. 
+		].
+				
+		$w -> [ :evt :itm |
+			itm vimOperator = $d
+				ifTrue: [
+					"Delete word under cursor."
+					| allText atEndOfLine editor startIndex stopIndex range |
+
+					editor := itm editor.
+					"editor pointBlock returns a CharacterBlock object."
+					startIndex := editor pointBlock stringIndex.
+					range := editor wordRangeIncluding: startIndex.
+					stopIndex := range last.
+					allText := editor text.
+					atEndOfLine := allText at: stopIndex + 1 :: isLineSeparator.
+					atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
+					editor selectFrom: startIndex to: stopIndex.
+					editor cut.
+					itm vimOperator: nil.
+				]
+				ifFalse: [
+					"Move to next word."
+					itm editor
+						moveCursor:  [ :position | itm editor nextWordStart: position ]
+						forward: true
+						event: evt
+				].
+			reset value: itm.
+		].
+		$b -> [ :evt :itm |
+			itm editor
+				moveCursor:  [ :position | itm editor previousWordStart: position ]
+				forward: false
+				event: evt.
+			reset value: itm.
+		].
+
+		$0 -> [ :evt :itm |
+			| editor |
+			editor := itm editor.
+			editor
+				moveCursor:  [ :position | editor beginningOfLine: position ]
+				forward: false
+				event: evt.
+			reset value: itm.
+		].
+
+		"$^ -> [ :evt :itm | itm editor cursorHome: evt ]." "TODO: Fix"
+
+		$$ -> [ :evt :itm |
+			| editor |
+			editor := itm editor.
+			editor
+				moveCursor:  [ :position | editor endOfLine: position ]
+				forward: true
+				event: evt.
+			reset value: itm.
+		].
+	}.
+! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:35:58'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
