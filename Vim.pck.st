@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 11:39:47 am'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 12:52:26 pm'!
 'Description '!
-!provides: 'Vim' 1 41!
+!provides: 'Vim' 1 46!
 SystemOrganization addCategory: #Vim!
 
 
@@ -60,7 +60,7 @@ third line'.
 	
 	! !
 
-!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/27/2024 08:13:11'!
+!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/28/2024 11:44:32'!
 processKeystrokeEvent: evt forEditor: editor
 	| char columnNumber handled line lines lineNumber pointBlock textComposition value |
 	
@@ -81,7 +81,6 @@ processKeystrokeEvent: evt forEditor: editor
 	value := evt keyValue.
 	value logAs: 'value'.
 	'keyCharacter = {1}, keyValue = {2}' format: { char. value } print.
-	'isEsc = {1}' format: { evt isEsc } print.
 	
 	handled := true. "assume for now"
 	mode = #command
@@ -135,7 +134,7 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:31:37'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:47:28'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image to support Vim commands."
 	| action |
@@ -155,7 +154,9 @@ processKeystrokeEvent: evt
 			evt isEsc ifTrue: [	
 				vimMode := #command.
 				'Vim mode is {1}.' format: { vimMode} :: print.
+				evt wasHandled: true.	
 				"TODO: Do we need the next two lines?
+				Probably not because we want the escape key to be specific to Vim handling.
 				action := self escAction.
 				action ifNotNil: [ ^action value ]"
 			].
@@ -248,10 +249,10 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:39:25'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:52:06'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
-	| moveDown moveLeft moveRight moveToStart moveUp reset |
+	| moveDown moveLeft moveRight moveUp reset |
 	
 	"Reset all the Vim-related instance variables."
 	reset := [ :itm |					
@@ -263,15 +264,6 @@ initialize
 	moveLeft := [ :evt :itm | itm editor cursorLeft: evt. reset value: itm ].
 	moveRight := [ :evt :itm | itm editor cursorRight: evt. reset value: itm ].
 	moveUp := [ :evt :itm | itm editor cursorUp: evt. reset value: itm ].
-	moveToStart := [ :evt :itm |
-		"Move to beginning of current line."
-		| editor |
-		editor := itm editor.
-		editor
-			moveCursor:  [ :position | editor beginningOfLine: position ]
-			forward: false
-			event: evt.
-	].
 
 	VimMappings := Dictionary newFrom: {
 		"itm is short for InnerTextMorph."
@@ -328,20 +320,13 @@ initialize
 		
 		#o -> [ :evt :itm |
 			"Open new line below current line and enter insert mode."
-			| editor |
-			editor := itm editor.
-			editor cursorEnd: evt.
-			editor replaceSelectionWith: (Character newLineCharacter asString).
+			itm editor openLineBelow: evt.
 			#insert. 
 		].
 				
 		#O -> [ :evt :itm |
 			"Open new line above current line and enter insert mode."
-			| editor |
-			moveUp value: evt value: itm.
-			editor := itm editor.
-			editor cursorEnd: evt.
-			editor replaceSelectionWith: (Character newLineCharacter asString).
+			itm editor openLineAbove: evt.
 			#insert. 
 		].
 
@@ -358,17 +343,7 @@ initialize
 
 		#x -> [ :evt :itm |
 			"Delete character under cursor."
-			| editor lastIndex pointBlock startIndex |
-			editor := itm editor.
-			pointBlock := editor pointBlock.
-			startIndex := pointBlock stringIndex.
-			lastIndex := pointBlock textLine last.
-			lastIndex logAs: 'lastIndex'.
-			startIndex > lastIndex ifTrue: [startIndex := startIndex - 1].
-			startIndex logAs: 'startIndex'.
-			editor selectFrom: startIndex to: startIndex.
-			"Why does the screen flash when deleting a space character and it fails to do so?"
-			editor cut.
+			itm editor deleteCursorCharacter: evt.
 			reset value: itm.
 		].
 
@@ -376,21 +351,13 @@ initialize
 		
 		#yy -> [ :evt :itm |
 			"Yank (copy) current line."
-			| editor index |
-			editor := itm editor.
-			index := editor pointBlock stringIndex.
-			"This moves the cursor to the end of the line."
-			editor selectLine.
-			editor copySelection.
-			editor deselect.
-			"Restore cursor position."
-			editor moveCursor: [ :position | index ] forward: false event: evt.
+			itm editor copyCursorLine: evt.
 			reset value: itm.
 		].
 	
 		'0' asSymbol -> [ :evt :itm |
 			"Move to start of current line."
-			moveToStart value: evt value: itm.
+			itm editor cursorBeginningOfLine: evt.
 			reset value: itm.
 		].
 
@@ -402,16 +369,36 @@ initialize
 
 		'$' asSymbol -> [ :evt :itm |
 			"Move to end of current line."
-			| editor |
-			editor := itm editor.
-			editor
-				moveCursor:  [ :position | editor endOfLine: position ]
-				forward: true
-				event: evt.
+			itm editor cursorEndOfLine: evt.
 			reset value: itm.
 		].
 	}.
 ! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:45:14'!
+copyCursorLine: evt
+	"Copy line containing cursor."
+	| index |
+
+	index := self pointBlock stringIndex.
+	"This moves the cursor to the end of the line."
+	self selectLine.
+	self copySelection.
+	self deselect.
+	"Restore cursor position."
+	self moveCursor: [ :position | index ] forward: false event: evt.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:51:35'!
+cursorBeginningOfLine: evt
+	"Move cursor to beginning of line."
+
+	self moveCursor:  [ :position | self beginningOfLine: position ] forward: false event: evt.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:49:56'!
+cursorEndOfLine: evt
+	"Move cursor to end of line."
+
+	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:24:24'!
 cursorNextWord: evt
@@ -424,6 +411,22 @@ cursorPreviousWord: evt
 	"Move cursor to beginning of previous word."
 
 	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:43:22'!
+deleteCursorCharacter: evt
+	"Delete character at cursor."	
+	| lastIndex pointBlock startIndex |
+
+	pointBlock := self pointBlock.
+	startIndex := pointBlock stringIndex.
+	lastIndex := pointBlock textLine last.
+	lastIndex logAs: 'lastIndex'.
+	startIndex > lastIndex ifTrue: [startIndex := startIndex - 1].
+	startIndex logAs: 'startIndex'.
+	self selectFrom: startIndex to: startIndex.
+	"Why does the screen flash when deleting a space character and it fails to do so?"
+	self cut.
+! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:35:46'!
 deleteCursorLine: evt
@@ -471,6 +474,23 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 				selectMark: (indices at: #fixed)
 				point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:38:25'!
+openLineAbove: evt
+	"Open a new line above the line containing cursor."
+	
+	self cursorUp: evt.
+	self cursorEnd: evt.
+	self replaceSelectionWith: (Character newLineCharacter asString).
+! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:38:46'!
+openLineBelow: evt
+	"Open a new line below the line containing cursor."
+	
+	self cursorEnd: evt.
+	self replaceSelectionWith: (Character newLineCharacter asString).
+! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:21:15'!
 deselect
