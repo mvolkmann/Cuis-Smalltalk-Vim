@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 4:33:21 pm'!
+'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 6:36:38 pm'!
 'Description '!
-!provides: 'Vim' 1 25!
+!provides: 'Vim' 1 26!
 SystemOrganization addCategory: #Vim!
 
 
@@ -214,6 +214,10 @@ processVimKeystrokeEvent: evt
 	evt wasHandled: handled.	
 	! !
 
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:30:14'!
+vimMode
+	^ vimMode! !
+
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:49:54'!
 vimMotion
 	^ vimMotion! !
@@ -230,21 +234,21 @@ vimOperator
 vimOperator: aCharacter
 	vimOperator := aCharacter! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 13:34:32'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:35:58'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
-	| char shift indices newPosition vimKey |
+	| char shift indices newPosition vimMode |
 
 	char := aKeyboardEvent keyCharacter.
-	"This Vim keys require the shift key, but we don't to select text when they are used."
-	vimKey := char = $^ or: [char = $$].
 	shift := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
 	indices := self
 		setIndices: shift
 		forward: forward.
 	newPosition := directionBlock value: (indices at: #moving).
-	shift and: [vimKey not] ::
+
+	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
+	shift and: [ vimMode ~= #command ] ::
 		ifTrue: [
 			self
 				selectMark: (indices at: #fixed)
