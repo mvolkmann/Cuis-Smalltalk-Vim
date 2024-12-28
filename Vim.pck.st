@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 8:33:19 am'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 11:34:02 am'!
 'Description '!
-!provides: 'Vim' 1 37!
+!provides: 'Vim' 1 39!
 SystemOrganization addCategory: #Vim!
 
 
@@ -135,45 +135,53 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:21:56'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:31:37'!
 processKeystrokeEvent: evt
-	"This method was modified from the version in the base image."
+	"This method was modified from the version in the base image to support Vim commands."
 	| action |
 	
-	"This block of code was added to support Vim keystrokes."
-	self processVimKeystrokeEvent: evt.
-	evt wasHandled ifTrue: [
-		"The next two lines were copied from handleInteraction:."
-		self selectionChanged.
-		self updateFromTextComposition.
-		^ nil "Don't run the rest of the code in this method."
-	].
+	vimMode = #insert
+		ifTrue: [
+			(acceptOn = #enter and: [evt isReturnKey]) ifTrue: [^ self acceptContents].
+			
+			self pauseBlinking.
+			
+			"Return - check for special action"
+			evt isReturnKey ifTrue: [	
+				action := self crAction.
+				action ifNotNil: [ ^action value ] ].
+			
+			"Esc - check for special action"
+			evt isEsc ifTrue: [	
+				vimMode := #command.
+				'Vim mode is {1}.' format: { vimMode} :: print.
+				"TODO: Do we need the next two lines?
+				action := self escAction.
+				action ifNotNil: [ ^action value ]"
+			].
+			
+			self handleInteraction: [ editor processKeystrokeEvent: evt ].	
+			(owner is: #ScrollPane) ifTrue: [
+				owner scrollSelectionIntoView ].
+			
+			"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
+			(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].
+		]
+		ifFalse: [
+			self processVimKeystrokeEvent: evt.
+			evt wasHandled ifTrue: [
+				"The next two lines were copied from handleInteraction:."
+				self selectionChanged.
+				self updateFromTextComposition.
+			].
+		].
 
-	(acceptOn = #enter and: [evt isReturnKey]) ifTrue: [^ self acceptContents].
+! !
 
-	self pauseBlinking.
-	
-	"Return - check for special action"
-	evt isReturnKey ifTrue: [	
-		action := self crAction.
-		action ifNotNil: [ ^action value ] ].
-	
-	"Esc - check for special action"
-	evt isEsc ifTrue: [			
-		action := self escAction.
-		action ifNotNil: [ ^action value ] ].
-	
-	self handleInteraction: [ editor processKeystrokeEvent: evt ].	
-	(owner is: #ScrollPane) ifTrue: [
-		owner scrollSelectionIntoView ].
-
-	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
-	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
-
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:32:41'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:32:42'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
-	| char handled key mapping newMode value |
+	| char key mapping newMode value |
 	
 	"See the TextEditor method sameColumn:newLine:forward:."
 	"pointBlock := editor pointBlock.
@@ -188,53 +196,40 @@ processVimKeystrokeEvent: evt
 	value := evt keyValue.
 	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } :: print."
 	
-	handled := true. "assume for now"
-
-	vimMode = #command
+	"Only add zero character to vimCount if it is already set
+	in order to get values like 10 or 20."
+	char isDigit and: [ char ~= $0 or: [ vimCount notNil ] ] ::
 		ifTrue: [
-			"Only add zero character to vimCount if it is already set
-			in order to get values like 10 or 20."
-			char isDigit and: [ char ~= $0 or: [ vimCount notNil ] ] ::
-				ifTrue: [
-					vimCount
-						ifNil: [ vimCount := char digitValue ]
-						ifNotNil: [ vimCount := vimCount asString, char asString :: asNumber ].
-				]
-				ifFalse: [
-					key := value < 32 ifTrue: value ifFalse: [
-						vimCommand := vimCommand, char asString.
-						vimCommand asSymbol.
-					].
-					
-					mapping := VimMappings at: key ifAbsent: nil.
-					mapping
-						ifNil: [
-							"Got invalid key sequence, so clear count and command."
-							vimCount := nil.
-							vimCommand := ''.
-						]
-						ifNotNil: [
-							mapping isBlock ifTrue: [
-								vimCount ifNil: [ vimCount := 1 ].
-								vimCount timesRepeat: [ newMode := mapping value: evt value: self ].
-								newMode isSymbol ifTrue: [
-									vimMode := newMode.
-									'Vim mode is {1}.' format: { vimMode} :: print.
-								].
-							]
-						].
-				].
+			vimCount
+				ifNil: [ vimCount := char digitValue ]
+				ifNotNil: [ vimCount := vimCount asString, char asString :: asNumber ].
 		]
 		ifFalse: [
-			evt isEsc
-				ifTrue: [
-					vimMode := #command.
-					'Vim mode is {1}.' format: { vimMode} :: print.
+			key := value < 32 ifTrue: value ifFalse: [
+				vimCommand := vimCommand, char asString.
+				vimCommand asSymbol.
+			].
+			
+			mapping := VimMappings at: key ifAbsent: nil.
+			mapping
+				ifNil: [
+					"Got invalid key sequence, so clear count and command."
+					vimCount := nil.
+					vimCommand := ''.
 				]
-				ifFalse: [ handled := false ]
+				ifNotNil: [
+					mapping isBlock ifTrue: [
+						vimCount ifNil: [ vimCount := 1 ].
+						vimCount timesRepeat: [ newMode := mapping value: evt value: self ].
+						newMode isSymbol ifTrue: [
+							vimMode := newMode.
+							'Vim mode is {1}.' format: { vimMode} :: print.
+						].
+					]
+				].
 		].
 
-	evt wasHandled: handled.	
+	evt wasHandled: true.	
 	! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 06:46:30'!
@@ -253,7 +248,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:33:00'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:33:48'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveToStart moveUp reset |
@@ -293,10 +288,7 @@ initialize
 	
 		#b -> [ :evt :itm |
 			"Move to previous word."
-			itm editor
-				moveCursor:  [ :position | itm editor previousWordStart: position ]
-				forward: false
-				event: evt.
+			itm editor cursorPreviousWord: evt.
 			reset value: itm.
 		].
 
@@ -376,10 +368,7 @@ initialize
 
 		#w -> [ :evt :itm |
 			"Move to next word."
-			itm editor
-				moveCursor:  [ :position | itm editor nextWordStart: position ]
-				forward: true
-				event: evt.
+			itm editor cursorNextWord: evt.
 			reset value: itm.
 		].
 
@@ -439,6 +428,18 @@ initialize
 		].
 	}.
 ! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:24:24'!
+cursorNextWord: evt
+	"Move cursor to beginning of next word."
+
+	self moveCursor:  [ :position | self nextWordStart: position ] forward: true event: evt! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:23:21'!
+cursorPreviousWord: evt
+	"Move cursor to beginning of previous word."
+
+	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:35:58'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
