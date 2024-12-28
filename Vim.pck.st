@@ -1,99 +1,9 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:34:34 pm'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:37:03 pm'!
 'Description '!
-!provides: 'Vim' 1 51!
+!provides: 'Vim' 1 52!
 SystemOrganization addCategory: #Vim!
 
 
-!classDefinition: #VimEditor category: #Vim!
-SystemWindow subclass: #VimEditor
-	instanceVariableNames: 'mode textModelMorph'
-	classVariableNames: ''
-	poolDictionaries: ''
-	category: 'Vim'!
-!classDefinition: 'VimEditor class' category: #Vim!
-VimEditor class
-	instanceVariableNames: ''!
-
-
-!VimEditor commentStamp: 'RMV 12/27/2024 08:55:46' prior: 0!
-I probably do not want to keep this class.
-All its functionality was moved to InnerTextMorph.!
-
-!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/28/2024 13:29:07'!
-initialize
-	| contents editor font labelMorph textModel |
-	
-	super initialize.
-	
-	"Should you use Preferences instead? That seems to only support known keys."
-	Smalltalk at: #useVim put: true.
-
-	mode := #command.
-	self setLabel: 'Vim Editor'.
-	
-	labelMorph := LabelMorph new contents: 'Edit text below.'; color: Color green.
-
-	contents := 'first line
-second line
-third line'.
-	textModel := TextModel withText: contents.
-	textModelMorph := TextModelMorph withModel: textModel.
-	textModelMorph layoutSpec offAxisEdgeWeight: 0.
-
-	"TODO: The font name must be wrong here."
-	font := FontFamily familyName: 'JetBrains Mono NL' pointSize: 24.
-	"font := FontFamily familyName: 'Alex Brush' pointSize: 24."
-	editor := textModelMorph editor.
-	editor defaultFont: font.
-	
-	"This block is called AFTER regular processing!!
-	We need to run this block BEFORE regular processing
-	and only run regular processing if a Vim key is not pressed.
-	See InnerTextMorph method processKeystrokeEvent:."
-	textModelMorph keystrokeAction: [ :keyboardEvent |
-		self processKeystrokeEvent: keyboardEvent forEditor: editor
-	].
-
-	layoutMorph addMorph: labelMorph.
-	layoutMorph addMorph: textModelMorph proportionalWidth: 1.
-	
-	! !
-
-!VimEditor methodsFor: 'as yet unclassified' stamp: 'RMV 12/28/2024 13:30:24'!
-processKeystrokeEvent: evt forEditor: editor
-	| char handled value |
-	
-	char := evt keyCharacter.
-	value := evt keyValue.
-	value logAs: 'value'.
-	'keyCharacter = {1}, keyValue = {2}' format: { char. value } print.
-	
-	handled := true. "assume for now"
-	mode = #command
-		ifTrue: [
-			true caseOf: {
-				[char = $a] -> [ mode := #append ].
-				[char = $A] -> [ mode := #append ].
-				[char = $i] -> [ mode := #insert ].
-				[char = $I] -> [ mode := #insert ].
-				[char = $h] -> [ editor cursorLeft: evt ].
-				[char = $j] -> [ editor cursorDown: evt ].
-				[char = $k] -> [ editor cursorUp: evt ].
-				[char = $l] -> [ editor cursorRight: evt ]
-			} otherwise: [ handled := false ]
-		]
-		ifFalse: [
-			evt isEsc
-				ifTrue: [
-					mode := #command.
-					evt wasHandled: true.
-				]
-				ifFalse: [ handled := false ]
-		].
-
-	self setLabel: 'Vim Editor - ', mode, ' mode'.
-	evt wasHandled: handled.	
-	! !
 
 !Object methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:00:25'!
 logAs: aString
@@ -165,7 +75,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:34:10'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:35:16'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key mapping newMode value |
