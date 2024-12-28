@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:12:10 pm'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:21:59 pm'!
 'Description '!
-!provides: 'Vim' 1 47!
+!provides: 'Vim' 1 48!
 SystemOrganization addCategory: #Vim!
 
 
@@ -179,7 +179,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:32:42'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:17:44'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key mapping newMode value |
@@ -221,7 +221,7 @@ processVimKeystrokeEvent: evt
 				ifNotNil: [
 					mapping isBlock ifTrue: [
 						vimCount ifNil: [ vimCount := 1 ].
-						vimCount timesRepeat: [ newMode := mapping value: evt value: self ].
+						vimCount timesRepeat: [ newMode := mapping value: evt value: editor ].
 						newMode isSymbol ifTrue: [
 							vimMode := newMode.
 							'Vim mode is {1}.' format: { vimMode} :: print.
@@ -249,63 +249,67 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:07:37'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:21:12'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
 	
 	"Reset all the Vim-related instance variables."
-	reset := [ :itm |					
-		itm vimCount: nil.
-		itm vimCommand: ''.
+	reset := [ :editor |	
+		| innerTextMorph |
+		innerTextMorph := editor morph.			
+		innerTextMorph vimCount: nil.
+		innerTextMorph vimCommand: ''.
 	].
 		
-	moveDown := [ :evt :itm | itm editor cursorDown: evt. reset value: itm ].
-	moveLeft := [ :evt :itm | itm editor cursorLeft: evt. reset value: itm ].
-	moveRight := [ :evt :itm | itm editor cursorRight: evt. reset value: itm ].
-	moveUp := [ :evt :itm | itm editor cursorUp: evt. reset value: itm ].
+	moveDown := [ :evt :editor | editor cursorDown: evt. reset value: editor ].
+	moveLeft := [ :evt :editor | editor cursorLeft: evt. reset value: editor ].
+	moveRight := [ :evt :editor | editor cursorRight: evt. reset value: editor ].
+	moveUp := [ :evt :editor | editor cursorUp: evt. reset value: editor ].
 
 	VimMappings := Dictionary newFrom: {
 		"itm is short for InnerTextMorph."
-		#a -> [ :evt :itm |
+		#a -> [ :evt :editor |
 			"Move right one character and enter insert mode."
-			moveRight value: evt value: itm.
+			moveRight value: evt value: editor.
 			#insert
 		].
-		#A -> [ :evt :itm |
+		
+		#A -> [ :evt :editor |
 			"Move to end of line and enter insert mode."
-			itm editor cursorEnd: evt.
+			editor cursorEnd: evt.
 			#insert
 		].
 	
-		#b -> [ :evt :itm |
+		#b -> [ :evt :editor |
 			"Move to previous word."
-			itm editor cursorPreviousWord: evt.
-			reset value: itm.
+			editor cursorPreviousWord: evt.
+			reset value: editor.
 		].
 
-		#d -> true.
+		#d -> true. "continue gathering characters"
 
-		#dd -> [ :evt :itm |
+		#dd -> [ :evt :editor |
 			"Delete line under cursor."
-			itm editor deleteCursorLine: evt.
-			reset value: itm.
+			editor deleteCursorLine: evt.
+			reset value: editor.
 		].
 	
-		#dw -> [ :evt :itm |
+		#dw -> [ :evt :editor |
 			"Delete word under cursor."
-			itm editor deleteCursorWord: evt.
-			reset value: itm.
+			editor deleteCursorWord: evt.
+			reset value: editor.
 		].
 
-		#i -> [ :evt :itm |
+		#i -> [ :evt :editor |
 			"Enter insert mode."
 			#insert
 		].
 
-		#I -> [ :evt :itm |
+		#I -> [ :evt :editor |
 			"Move to beginning of line and enter insert mode."
-			itm editor cursorHome: evt. #insert
+			editor cursorHome: evt.
+			#insert
 		].
 
 		"The numbers below are key codes for the arrow keys."
@@ -318,59 +322,60 @@ initialize
 		#l -> moveRight.
 		29 -> moveRight.
 		
-		#o -> [ :evt :itm |
+		#o -> [ :evt :editor |
 			"Open new line below current line and enter insert mode."
-			itm editor openLineBelow: evt.
+			editor openLineBelow: evt.
 			#insert. 
 		].
 				
-		#O -> [ :evt :itm |
+		#O -> [ :evt :editor |
 			"Open new line above current line and enter insert mode."
-			itm editor openLineAbove: evt.
+			editor openLineAbove: evt.
 			#insert. 
 		].
 
-		#p -> [ :evt :itm |
-			itm editor paste.
-			reset value: itm.
+		#p -> [ :evt :editor |
+			"Paste clipboard contents at cursor position."
+			editor paste.
+			reset value: editor.
 		].
 
-		#w -> [ :evt :itm |
+		#w -> [ :evt :editor |
 			"Move to next word."
-			itm editor cursorNextWord: evt.
-			reset value: itm.
+			editor cursorNextWord: evt.
+			reset value: editor.
 		].
 
-		#x -> [ :evt :itm |
+		#x -> [ :evt :editor |
 			"Delete character under cursor."
-			itm editor deleteCursorCharacter: evt.
-			reset value: itm.
+			editor deleteCursorCharacter: evt.
+			reset value: editor.
 		].
 
-		#y -> true.
+		#y -> true. "continue gathering characters"
 		
-		#yy -> [ :evt :itm |
+		#yy -> [ :evt :editor |
 			"Yank (copy) current line."
-			itm editor copyCursorLine: evt.
-			reset value: itm.
+			editor copyCursorLine: evt.
+			reset value: editor.
 		].
 	
-		'0' asSymbol -> [ :evt :itm |
+		'0' asSymbol -> [ :evt :editor |
 			"Move to start of current line."
-			itm editor cursorBeginningOfLine: evt.
-			reset value: itm.
+			editor cursorBeginningOfLine: evt.
+			reset value: editor.
 		].
 
-		'^' asSymbol -> [ :evt :itm |
+		'^' asSymbol -> [ :evt :editor |
 			"Move to first non-whitespace character in current line."
-			itm editor cursorFirstNonBlankOfLine: evt.
-			reset value: itm.
+			editor cursorFirstNonBlankOfLine: evt.
+			reset value: editor.
 		].
 
-		'$' asSymbol -> [ :evt :itm |
+		'$' asSymbol -> [ :evt :editor |
 			"Move to end of current line."
-			itm editor cursorEndOfLine: evt.
-			reset value: itm.
+			editor cursorEndOfLine: evt.
+			reset value: editor.
 		].
 	}.
 ! !
