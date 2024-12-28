@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:32:39 pm'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:34:34 pm'!
 'Description '!
-!provides: 'Vim' 1 50!
+!provides: 'Vim' 1 51!
 SystemOrganization addCategory: #Vim!
 
 
@@ -165,20 +165,11 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:17:44'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:34:10'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key mapping newMode value |
 	
-	"See the TextEditor method sameColumn:newLine:forward:."
-	"pointBlock := editor pointBlock.
-	columnNumber := pointBlock stringIndex - pointBlock textLine first. 6 .
-	lines := textComposition lines.
-	lineCount := textComposition numberOfLines.
-	lineNumber  := textComposition lineIndexFor: (pointBlock stringIndex).
-	line := lines at: lineNumber.
-	columnNumber := pointBlock stringIndex - line first."
-
 	char := evt keyCharacter.
 	value := evt keyValue.
 	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } :: print."
