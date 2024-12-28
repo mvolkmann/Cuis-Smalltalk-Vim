@@ -1,6 +1,6 @@
 # Cuis-Smalltalk-Vim
 
-This is a package for Cuis Smalltalk that adds support for a subset of Vim
+This sis a package for Cuis Smalltalk that adds support for a subset of Vim
 in add editable text areas.
 
 Initially this will only support the Vim keystrokes that I use most often.

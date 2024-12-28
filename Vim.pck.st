@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 27 December 2024 at 7:30:46 pm'!
+'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 6:41:53 am'!
 'Description '!
-!provides: 'Vim' 1 30!
+!provides: 'Vim' 1 31!
 SystemOrganization addCategory: #Vim!
 
 
@@ -155,7 +155,7 @@ processKeystrokeEvent: evt
 	"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 	(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 19:30:44'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 06:40:47'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| block char handled key newMode value |
@@ -175,11 +175,10 @@ processVimKeystrokeEvent: evt
 	
 	handled := true. "assume for now"
 
-	"Only treat the zero character as a command if vimCount is not set.
-	Otherwise it can be appended to vimCount to set its value to a number like 10 or 20."
-	vimMode = #command and: [ char ~= $0 or: [ vimCount isNil ]] ::
+	vimMode = #command
 		ifTrue: [
-			"TODO: This code is messy!!"
+			"Only add zero character to vimCount if it is already set
+			in order to get values like 10 or 20."
 			char isDigit and: [ char ~= $0 or: [ vimCount notNil ] ] ::
 				ifTrue: [
 					vimCount
