@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 7:50:08 am'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 9:56:47 am'!
 'Description '!
-!provides: 'Vim' 1 57!
+!provides: 'Vim' 1 58!
 SystemOrganization addCategory: #Vim!
 
 
@@ -138,7 +138,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:49:48'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 09:56:29'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
@@ -243,6 +243,12 @@ initialize
 			reset value: editor.
 		].
 
+		#u -> [ :evt :editor |
+			"Undo last action."
+			editor undo.
+			reset value: editor.
+		].
+		
 		#w -> [ :evt :editor |
 			"Move to next word."
 			editor cursorNextWord: evt.
