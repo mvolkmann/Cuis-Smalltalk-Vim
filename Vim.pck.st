@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:52:20 am'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 7:50:08 am'!
 'Description '!
-!provides: 'Vim' 1 56!
+!provides: 'Vim' 1 57!
 SystemOrganization addCategory: #Vim!
 
 
@@ -76,7 +76,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:35:16'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 07:38:02'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key mapping newMode value |
@@ -95,7 +95,8 @@ processVimKeystrokeEvent: evt
 		]
 		ifFalse: [
 			key := value < 32 ifTrue: value ifFalse: [
-				vimCommand := vimCommand, char asString.
+				"TODO: How does vimCommand ever get set to nil?"
+				vimCommand := vimCommand ifNil: [ char asString ] ifNotNil: [ vimCommand, char asString ].
 				vimCommand asSymbol.
 			].
 			
@@ -313,10 +314,10 @@ cursorFirstLine: evt
 
 	self moveCursor:  [ :position | 0 ] forward: false event: evt.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:12:03'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 07:48:53'!
 cursorFirstNonBlankOfLine: evt
 	"Move cursor to first non-blank character in line."
-	| currentIndex index pointBlock space stopIndex text |
+	| character currentIndex index pointBlock space stopIndex tab text |
 
 	"editor pointBlock returns a CharacterBlock object."
 	pointBlock := self pointBlock.
@@ -325,7 +326,11 @@ cursorFirstNonBlankOfLine: evt
 
 	text := self text.
 	space := Character space.
-	[ (text at: index) = space and: [ index < stopIndex ] ] whileTrue: [ index := index + 1 ].
+	tab := Character tab.
+	[
+		character := text at: index.
+		(character = space or: [ character = tab]) and: [ index < stopIndex ]
+	] whileTrue: [ index := index + 1 ].
 	
 	currentIndex := pointBlock stringIndex.
 	self moveCursor:  [ :position | index ] forward: (index > currentIndex) event: evt.! !
