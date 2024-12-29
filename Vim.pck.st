@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 28 December 2024 at 1:37:03 pm'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:08:43 am'!
 'Description '!
-!provides: 'Vim' 1 52!
+!provides: 'Vim' 1 53!
 SystemOrganization addCategory: #Vim!
 
 
@@ -30,7 +30,7 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:47:28'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:08:01'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image to support Vim commands."
 	| action |
@@ -47,17 +47,19 @@ processKeystrokeEvent: evt
 				action ifNotNil: [ ^action value ] ].
 			
 			"Esc - check for special action"
-			evt isEsc ifTrue: [	
-				vimMode := #command.
-				'Vim mode is {1}.' format: { vimMode} :: print.
-				evt wasHandled: true.	
-				"TODO: Do we need the next two lines?
-				Probably not because we want the escape key to be specific to Vim handling.
-				action := self escAction.
-				action ifNotNil: [ ^action value ]"
-			].
+			evt isEsc
+				ifTrue: [	
+					vimMode := #command.
+					'Vim mode is {1}.' format: { vimMode} :: print.	
+					"TODO: I think we don't need the next two lines because
+					we want the escape key to be specific to Vim handling.
+					action := self escAction.
+					action ifNotNil: [ ^action value ]"
+				]
+				ifFalse: [
+					self handleInteraction: [ editor processKeystrokeEvent: evt ].	
+				].
 			
-			self handleInteraction: [ editor processKeystrokeEvent: evt ].	
 			(owner is: #ScrollPane) ifTrue: [
 				owner scrollSelectionIntoView ].
 			
