@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:23:44 am'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:37:45 am'!
 'Description '!
-!provides: 'Vim' 1 54!
+!provides: 'Vim' 1 55!
 SystemOrganization addCategory: #Vim!
 
 
@@ -338,16 +338,19 @@ deleteCursorCharacter: evt
 	self cut.
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:35:46'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:30:52'!
 deleteCursorLine: evt
 	"Delete line containing cursor."
-	| textLine |
+	| first last textLine |
 
 	"editor pointBlock returns a CharacterBlock object."
 	textLine := self pointBlock textLine.
-	self selectFrom: textLine first to: textLine last.
-	self cut.
-! !
+	"textLine inspect."
+	first := textLine first.
+	last := textLine last.
+	"first = last ifTrue: [ first := first - 1 ]."
+	self selectFrom: first to: last.
+	self cut.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:38:52'!
 deleteCursorWord: evt
@@ -401,6 +404,19 @@ openLineBelow: evt
 	self cursorEnd: evt.
 	self replaceSelectionWith: (Character newLineCharacter asString).
 ! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:37:04'!
+cut
+	"Cut out the current selection and redisplay if necessary."
+	"This is a user command, and generates undo"
+
+	| selection |
+	"TODO: I commented out this line because it breaks the
+	ability to delete an empty line using the Vim dd command.
+	self lineSelectAndEmptyCheck: [^ self]."
+	selection := self selection.
+	self replaceSelectionWith: self nullText.
+	self clipboardTextPut: selection.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:21:15'!
 deselect
