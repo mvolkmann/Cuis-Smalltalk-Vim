@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:37:45 am'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:52:20 am'!
 'Description '!
-!provides: 'Vim' 1 55!
+!provides: 'Vim' 1 56!
 SystemOrganization addCategory: #Vim!
 
 
@@ -137,7 +137,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:21:54'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:49:48'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
@@ -186,6 +186,20 @@ initialize
 		#dw -> [ :evt :editor |
 			"Delete word under cursor."
 			editor deleteCursorWord: evt.
+			reset value: editor.
+		].
+
+		#g -> true. "continue gathering characters"
+		
+		#G -> [ :evt :editor |
+			"Scroll to bottom."
+			editor cursorLastLine: evt.
+			reset value: editor.
+		].
+		
+		#gg -> [ :evt :editor |
+			"Scroll to top."
+			editor cursorFirstLine: evt.
 			reset value: editor.
 		].
 
@@ -293,6 +307,12 @@ cursorEndOfLine: evt
 
 	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.! !
 
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:41:18'!
+cursorFirstLine: evt
+	"Move cursor to first line."
+
+	self moveCursor:  [ :position | 0 ] forward: false event: evt.! !
+
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:12:03'!
 cursorFirstNonBlankOfLine: evt
 	"Move cursor to first non-blank character in line."
@@ -309,6 +329,15 @@ cursorFirstNonBlankOfLine: evt
 	
 	currentIndex := pointBlock stringIndex.
 	self moveCursor:  [ :position | index ] forward: (index > currentIndex) event: evt.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:52:10'!
+cursorLastLine: evt
+	"Move cursor to last line."
+	| size |
+	size := morph model actualContents size.
+	size logAs: 'size'.
+	self moveCursor:  [ :position | size ] forward: false event: evt.
+	self cursorBeginningOfLine: evt.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:24:24'!
 cursorNextWord: evt
