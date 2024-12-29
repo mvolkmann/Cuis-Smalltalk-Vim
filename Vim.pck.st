@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:08:43 am'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:23:44 am'!
 'Description '!
-!provides: 'Vim' 1 53!
+!provides: 'Vim' 1 54!
 SystemOrganization addCategory: #Vim!
 
 
@@ -30,7 +30,7 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:08:01'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:23:25'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image to support Vim commands."
 	| action |
@@ -59,10 +59,7 @@ processKeystrokeEvent: evt
 				ifFalse: [
 					self handleInteraction: [ editor processKeystrokeEvent: evt ].	
 				].
-			
-			(owner is: #ScrollPane) ifTrue: [
-				owner scrollSelectionIntoView ].
-			
+						
 			"Only accept (on any) if we have unaccepted edits, otherwise the morph will flash."
 			(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].
 		]
@@ -74,6 +71,8 @@ processKeystrokeEvent: evt
 				self updateFromTextComposition.
 			].
 		].
+		
+		(owner is: #ScrollPane) ifTrue: [ owner scrollSelectionIntoView ].
 
 ! !
 
@@ -138,7 +137,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/28/2024 13:21:12'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:21:54'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
