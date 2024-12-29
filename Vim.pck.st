@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 9:56:47 am'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 4:14:21 pm'!
 'Description '!
-!provides: 'Vim' 1 58!
+!provides: 'Vim' 1 60!
 SystemOrganization addCategory: #Vim!
 
 
@@ -14,6 +14,35 @@ logAs: aString
     template := 'In {1}, {2} is a {3} = {4}'.
     message := template format: {sender. aString. self class name. self}.
     message print.! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:07:45'!
+drawOn: aCanvas
+	"Draw the receiver on a canvas"
+	| rect |
+
+	false ifTrue: [ self debugDrawLineRectsOn: aCanvas ].  "show line rects for debugging"
+
+	vimMode = #command ifTrue: [
+		rect := Rectangle origin: 0@0 extent: extent.
+		aCanvas fillRectangle: rect color: (Color pink alpha: 0.1).
+	].
+	
+	aCanvas
+		drawTextComposition: self textComposition
+		at: `0@0`
+		extent: extent
+		color: color
+		selectionColor: (Theme current textHighlightFocused: self hasKeyboardFocus).
+
+	model actualContents isEmpty ifTrue: [
+		owner
+			valueOfProperty: #emptyTextDisplayMessage
+			ifPresentDo: [ :msg |
+				aCanvas
+					drawString: msg
+					at: `0@0`
+					font: nil
+					color: Theme current textEmptyDisplayMessage ]].! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:23:20'!
 initialize
@@ -30,7 +59,7 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:23:25'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:10:50'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image to support Vim commands."
 	| action |
@@ -49,7 +78,7 @@ processKeystrokeEvent: evt
 			"Esc - check for special action"
 			evt isEsc
 				ifTrue: [	
-					vimMode := #command.
+					self vimMode: #command.
 					'Vim mode is {1}.' format: { vimMode} :: print.	
 					"TODO: I think we don't need the next two lines because
 					we want the escape key to be specific to Vim handling.
@@ -76,7 +105,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 07:38:02'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:11:12'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key mapping newMode value |
@@ -112,7 +141,7 @@ processVimKeystrokeEvent: evt
 						vimCount ifNil: [ vimCount := 1 ].
 						vimCount timesRepeat: [ newMode := mapping value: evt value: editor ].
 						newMode isSymbol ifTrue: [
-							vimMode := newMode.
+							self vimMode:​ newMode.
 							'Vim mode is {1}.' format: { vimMode} :: print.
 						].
 					]
@@ -137,6 +166,11 @@ vimCount: aNumber
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:30:14'!
 vimMode
 	^ vimMode! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:10:22'!
+vimMode: aSymbol
+	vimMode := aSymbol.
+	self redrawNeeded.! !
 
 !InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 09:56:29'!
 initialize
@@ -392,7 +426,7 @@ deleteCursorLine: evt
 	self selectFrom: first to: last.
 	self cut.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 11:38:52'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:13:56'!
 deleteCursorWord: evt
 	"Delete word containing cursor."
 	| allText atEndOfLine range startIndex stopIndex |
@@ -402,12 +436,12 @@ deleteCursorWord: evt
 	range := self wordRangeIncluding: startIndex.
 	stopIndex := range last.
 	allText := self text.
-	atEndOfLine := allText at: stopIndex + 1 :: isLineSeparator.
+	atEndOfLine := stopIndex = allText size or: [ allText at: stopIndex + 1 :: isLineSeparator].
 	atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
 	self selectFrom: startIndex to: stopIndex.
 	self cut.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:35:58'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:11:45'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
