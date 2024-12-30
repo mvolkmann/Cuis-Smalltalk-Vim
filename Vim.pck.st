@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 4:14:21 pm'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:49:07 pm'!
 'Description '!
-!provides: 'Vim' 1 60!
+!provides: 'Vim' 1 61!
 SystemOrganization addCategory: #Vim!
 
 
@@ -172,7 +172,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 09:56:29'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:46:12'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
@@ -273,6 +273,7 @@ initialize
 
 		#p -> [ :evt :editor |
 			"Paste clipboard contents at cursor position."
+			editor cursorDown: evt.
 			editor paste.
 			reset value: editor.
 		].
@@ -320,10 +321,16 @@ initialize
 			editor cursorEndOfLine: evt.
 			reset value: editor.
 		].
+
+		#~ -> [ :evt :editor |
+			"Change the case of the current character or selected characters."
+			editor toggleCase: evt.
+			reset value: editor.
+		]
 	}.
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:45:14'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:46:45'!
 copyCursorLine: evt
 	"Copy line containing cursor."
 	| index |
@@ -396,7 +403,7 @@ cursorPreviousWord: evt
 
 	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 12:43:22'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:33:49'!
 deleteCursorCharacter: evt
 	"Delete character at cursor."	
 	| lastIndex pointBlock startIndex |
@@ -404,9 +411,7 @@ deleteCursorCharacter: evt
 	pointBlock := self pointBlock.
 	startIndex := pointBlock stringIndex.
 	lastIndex := pointBlock textLine last.
-	lastIndex logAs: 'lastIndex'.
 	startIndex > lastIndex ifTrue: [startIndex := startIndex - 1].
-	startIndex logAs: 'startIndex'.
 	self selectFrom: startIndex to: startIndex.
 	"Why does the screen flash when deleting a space character and it fails to do so?"
 	self cut.
@@ -477,6 +482,23 @@ openLineBelow: evt
 	
 	self cursorEnd: evt.
 	self replaceSelectionWith: (Character newLineCharacter asString).
+! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:48:48'!
+toggleCase: evt
+	"Toggle the case of the character under the cursor."
+	| char index |
+	
+	index := self pointBlock stringIndex.
+	index <= self text size ifTrue: [
+		char := self text at: index.
+		char isAlphaNumeric ifTrue: [
+			char := char isLowercase ifTrue: [ char asUppercase ] ifFalse: [ char asLowercase ].
+			self clipboardTextPut: char asString.
+			self selectFrom: index to: index.
+			self paste.
+		].
+	]
 ! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:37:04'!
