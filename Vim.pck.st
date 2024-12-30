@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 6:49:07 pm'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 7:04:48 pm'!
 'Description '!
-!provides: 'Vim' 1 61!
+!provides: 'Vim' 1 63!
 SystemOrganization addCategory: #Vim!
 
 
@@ -172,7 +172,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:46:12'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:56:56'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 	| moveDown moveLeft moveRight moveUp reset |
@@ -208,6 +208,22 @@ initialize
 			"Move to previous word."
 			editor cursorPreviousWord: evt.
 			reset value: editor.
+		].
+
+		#c -> true. "continue gathering characters"
+
+		#cw -> [ :evt :editor |
+			"Change word under cursor."
+			editor deleteCursorWord: evt.
+			reset value: editor.
+			#insert.
+		].
+
+		'c$' asSymbol -> [ :evt :editor |
+			"Change characters from cursor to end of line."
+			editor deleteCursorToEndOfLine: evt.
+			reset value: editor.
+			#insert.
 		].
 
 		#d -> true. "continue gathering characters"
@@ -417,19 +433,34 @@ deleteCursorCharacter: evt
 	self cut.
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:30:52'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 18:58:26'!
 deleteCursorLine: evt
 	"Delete line containing cursor."
 	| first last textLine |
 
 	"editor pointBlock returns a CharacterBlock object."
 	textLine := self pointBlock textLine.
-	"textLine inspect."
 	first := textLine first.
 	last := textLine last.
-	"first = last ifTrue: [ first := first - 1 ]."
 	self selectFrom: first to: last.
 	self cut.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 19:04:16'!
+deleteCursorToEndOfLine: evt
+	"Delete from cursor to end of line."
+	| index last pointBlock |
+
+	"editor pointBlock returns a CharacterBlock object."
+	pointBlock := self pointBlock.
+	index := pointBlock stringIndex.
+	last := pointBlock textLine last.
+	self text logAs: 'text'.
+	(self text at: last) asciiValue :: logAs: 'last character'.
+	(self text at: last) isLineSeparator :: logAs: 'isLineSeparator'.
+	(self text at: last) isLineSeparator ifTrue: [ last := last - 1 ].
+	self selectFrom: index to: last.
+	self cut.
+	#insert.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:13:56'!
 deleteCursorWord: evt
