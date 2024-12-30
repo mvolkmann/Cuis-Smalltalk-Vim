@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 7:04:48 pm'!
+'From Cuis7.3 [latest update: #6895] on 29 December 2024 at 7:36:05 pm'!
 'Description '!
-!provides: 'Vim' 1 63!
+!provides: 'Vim' 1 64!
 SystemOrganization addCategory: #Vim!
 
 
@@ -371,10 +371,11 @@ cursorEndOfLine: evt
 
 	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:41:18'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 19:09:45'!
 cursorFirstLine: evt
 	"Move cursor to first line."
 
+	self defaultFont logAs: 'defaultFont'.
 	self moveCursor:  [ :position | 0 ] forward: false event: evt.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 07:48:53'!
@@ -548,3 +549,14 @@ cut
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:21:15'!
 deselect
 	markBlock := pointBlock.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 19:34:10'!
+initialize
+	emphasisHere := #().
+	initialSelectionStart := nil.
+	initialSelectionStop := nil.
+	doWordSelection := false.
+	doParagraphSelection := false.
+	"defaultFont := nil."
+	"TODO: Why does this affect Text Editor and Workspace windows, but not Browser code panes?"
+	defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14.! !

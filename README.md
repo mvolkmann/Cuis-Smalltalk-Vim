@@ -21,5 +21,10 @@ To switch to "command" mode, press the escape key.
 When in "command" mode, the background of the editing area
 changes to a very light pink.
 
+I modified the `TextEditor` instance method `initialize`
+to set the font to "JetBrains Mono NL" which is a monospace font.
+But it is not taking effect in the code panew of System Browser windows.
+I need to fix that still.
+
 Please report any problems you encounter with this packages
 or feature requests by creating an issue in this GitHub repository.
