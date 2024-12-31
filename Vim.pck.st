@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 8:50:12 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 9:01:57 am'!
 'Description '!
-!provides: 'Vim' 1 80!
+!provides: 'Vim' 1 81!
 SystemOrganization addCategory: #Vim!
 
 
@@ -177,7 +177,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:50:02'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:52:30'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -251,7 +251,7 @@ initialize
 		#w -> #cursorNextWord:.
 
 		"Delete character under cursor."
-		#x -> #deleteCursorCharacter:.
+		#x -> #deleteSelection:.
 
 		#y -> #noop:.
 		
@@ -382,20 +382,6 @@ cursorPreviousWord: evt
 	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:31:42'!
-deleteCursorCharacter: evt
-	"Delete character at cursor."	
-	| lastIndex pointBlock startIndex |
-
-	pointBlock := self pointBlock.
-	startIndex := pointBlock stringIndex.
-	lastIndex := pointBlock textLine last.
-	startIndex > lastIndex ifTrue: [startIndex := startIndex - 1].
-	self selectFrom: startIndex to: startIndex.
-	self cut.
-	self reset.
-! !
-
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:16:55'!
 deleteCursorLine: evt
 	"Delete line containing cursor."
@@ -443,6 +429,24 @@ deleteCursorWord: evt
 	self cut.
 	
 	self reset.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 09:01:39'!
+deleteSelection: evt
+	"Delete selected text or character at cursor."	
+	| markBlock pointBlock startIndex stopIndex |
+
+	markBlock := self markBlock.
+	startIndex := markBlock stringIndex.
+	pointBlock := self pointBlock.
+	stopIndex := pointBlock stringIndex - 1.
+	startIndex logAs: 'startIndex'.
+	stopIndex logAs: 'stopIndex'.
+	startIndex > stopIndex ifTrue: [
+		self selectFrom: startIndex to: startIndex.
+	].
+	self cut.
+	self reset.
+! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:22:01'!
 insertAtBeginningOfLine: evt
@@ -613,3 +617,7 @@ initialize
 	"defaultFont := nil."
 	"TODO: Why does this affect Text Editor and Workspace windows, but not Browser code panes?"
 	defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:55:09'!
+markBlock
+	^markBlock! !
