@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:35:49 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:41:26 am'!
 'Description '!
-!provides: 'Vim' 1 76!
+!provides: 'Vim' 1 77!
 SystemOrganization addCategory: #Vim!
 
 
@@ -172,7 +172,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:35:31'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:41:07'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -193,7 +193,7 @@ initialize
 			editor cursorPreviousWord: evt
 		].
 
-		#c -> true. "continue gathering characters"
+		#c -> [ :evt :editor | editor noop: evt ].
 
 		#cw -> [ :evt :editor |
 			"Change word under cursor."
@@ -205,7 +205,7 @@ initialize
 			editor changeCursorToEndOfLine: evt
 		].
 
-		#d -> true. "continue gathering characters"
+		#d -> [ :evt :editor | editor noop: evt ].
 
 		#dd -> [ :evt :editor |
 			"Delete line under cursor."
@@ -279,7 +279,7 @@ initialize
 			editor deleteCursorCharacter: evt
 		].
 
-		#y -> true. "continue gathering characters"
+		#y -> [ :evt :editor | editor noop: evt ].
 		
 		#yy -> [ :evt :editor |
 			"Yank (copy) current line."
@@ -535,6 +535,10 @@ moveRight: evt
 moveUp: evt
 	self cursorUp: evt.
 	self reset.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:39:56'!
+noop: evt
+	"Continue gathering command characters."! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:24:37'!
 openLineAbove: evt
