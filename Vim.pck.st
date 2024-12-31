@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 4:06:37 pm'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 4:21:47 pm'!
 'Description '!
-!provides: 'Vim' 1 88!
+!provides: 'Vim' 1 90!
 SystemOrganization addCategory: #Vim!
 
 
@@ -177,14 +177,13 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:06:27'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:06:57'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
 	VimMappings := Dictionary newFrom: {
 		"Move right one character and enter insert mode."
 		#a -> #append:.
-
 		
 		"Move to end of line and enter insert mode."
 		#A -> #appendEndOfLine:.
@@ -510,16 +509,11 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 				point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:03:42'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:21:03'!
 moveDown: evt
-	| vimMode |
-	
-	vimMode := self morph vimMode.
-	vimMode = #visualLine ifTrue: [
-		'in visualLine mode' print.
-	].
-	
+
 	self cursorDown: evt.
+	self morph vimMode = #visualLine ifTrue: [ self selectLine ].	
 	self reset.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:06:19'!
@@ -532,9 +526,11 @@ moveRight: evt
 	self cursorRight: evt.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:00:25'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:21:21'!
 moveUp: evt
+
 	self cursorUp: evt.
+	self morph vimMode = #visualLine ifTrue: [ self selectLine ].	
 	self reset.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:39:56'!
@@ -622,17 +618,25 @@ undoLastAction: evt
 	self undo.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:00:08'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:15:36'!
 visualLineMode: evt
 	"Switch to visual line mode for selecting text."
+
+	"Select the current line."
+	self selectLine.
 
 	self reset.
 	^ #visualLine
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:00:19'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:18:48'!
 visualMode: evt
 	"Switch to visual mode for selecting text."
+	| index |
+	
+	"Select charater at cursor."
+	index := self pointBlock stringIndex.
+	self selectFrom: index to: index.
 
 	self reset.
 	^ #visual
