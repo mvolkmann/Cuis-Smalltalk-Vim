@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 9:01:57 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 9:11:20 am'!
 'Description '!
-!provides: 'Vim' 1 81!
+!provides: 'Vim' 1 82!
 SystemOrganization addCategory: #Vim!
 
 
@@ -177,7 +177,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:52:30'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 09:10:43'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -208,7 +208,7 @@ initialize
 		"Delete word under cursor."
 		#dw -> #deleteCursorWord:.
 
-		#g -> #noop.
+		#g -> #noop:.
 		
 		"Scroll to bottom."
 		#G -> #cursorLastLine:.
