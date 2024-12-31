@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 9:11:20 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 3:28:21 pm'!
 'Description '!
-!provides: 'Vim' 1 82!
+!provides: 'Vim' 1 85!
 SystemOrganization addCategory: #Vim!
 
 
@@ -177,7 +177,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 09:10:43'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:04:50'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -246,6 +246,9 @@ initialize
 		
 		"Enter visual mode."
 		#v -> #visualMode:.
+
+		"Enter visual line mode."
+		#V -> #visualLineMode:.
 
 		"Move to next word."
 		#w -> #cursorNextWord:.
@@ -368,18 +371,36 @@ cursorLastLine: evt
 	self cursorBeginningOfLine: evt.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:30:39'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:25:43'!
 cursorNextWord: evt
 	"Move cursor to beginning of next word."
+	| atLastWordInLine pointBlock |
 
-	self moveCursor:  [ :position | self nextWordStart: position ] forward: true event: evt.
+	self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
+	
+	pointBlock := self pointBlock.
+	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
+	atLastWordInLine ifTrue: [
+		"Do it again to move to the first word on the next line."
+		self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
+	].
+	
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:12:39'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:28:06'!
 cursorPreviousWord: evt
 	"Move cursor to beginning of previous word."
+	| atLastWordInLine pointBlock |
 
 	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt.
+	
+	pointBlock := self pointBlock.
+	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
+	atLastWordInLine ifTrue: [
+		"Do it again to move to the last word on the previous line."
+		self moveCursor:  [ :position | self previousWordStart: position] forward: false event: evt.
+	].	
+	
 	self reset.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:16:55'!
@@ -463,7 +484,7 @@ insertAtCursor: evt
 	self reset.
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:43:52'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:09:21'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
@@ -471,7 +492,7 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 
 	char := aKeyboardEvent keyCharacter.
 	shiftPressed := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
-	selecting := shiftPressed or: [ morph vimMode = #visual ].
+	selecting := shiftPressed or: [ morph vimMode = #visual or: [ morph vimMode = #visualLine ] ].
 	indices := self
 		setIndices: selecting
 		forward: forward.
@@ -589,6 +610,20 @@ toggleCase: evt
 undoLastAction: evt
 	self undo.
 	self reset.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:06:23'!
+visualLineMode: evt
+	"Switch to visual line mode for selecting text."
+
+	^ #visualLine
+! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:36:12'!
+visualMode: evt
+	"Switch to visual mode for selecting text."
+
+	^ #visual
+! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:37:04'!
 cut
