@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 4:01:08 pm'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 4:06:37 pm'!
 'Description '!
-!provides: 'Vim' 1 87!
+!provides: 'Vim' 1 88!
 SystemOrganization addCategory: #Vim!
 
 
@@ -177,7 +177,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:04:50'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:06:27'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -207,6 +207,9 @@ initialize
 	
 		"Delete word under cursor."
 		#dw -> #deleteCursorWord:.
+
+		"Delete word under cursor."
+		'd$' asSymbol -> #deleteCursorToEndOfLine:.
 
 		#g -> #noop:.
 		
@@ -507,8 +510,15 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 				point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 05:59:52'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:03:42'!
 moveDown: evt
+	| vimMode |
+	
+	vimMode := self morph vimMode.
+	vimMode = #visualLine ifTrue: [
+		'in visualLine mode' print.
+	].
+	
 	self cursorDown: evt.
 	self reset.! !
 
