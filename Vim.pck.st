@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:34:46 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:35:49 am'!
 'Description '!
-!provides: 'Vim' 1 75!
+!provides: 'Vim' 1 76!
 SystemOrganization addCategory: #Vim!
 
 
@@ -172,18 +172,9 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:34:34'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:35:31'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
-	| reset |
-	
-	"Reset all the Vim-related instance variables."
-	reset := [ :editor |	
-		| innerTextMorph |
-		innerTextMorph := editor morph.			
-		innerTextMorph vimCount: nil.
-		innerTextMorph vimCommand: ''.
-	].
 		
 	VimMappings := Dictionary newFrom: {
 		"itm is short for InnerTextMorph."
