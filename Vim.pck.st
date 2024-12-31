@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:41:26 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:55:37 am'!
 'Description '!
-!provides: 'Vim' 1 77!
+!provides: 'Vim' 1 78!
 SystemOrganization addCategory: #Vim!
 
 
@@ -105,10 +105,10 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:11:12'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:45:50'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
-	| char key mapping newMode value |
+	| char key message newMode value |
 	
 	char := evt keyCharacter.
 	value := evt keyValue.
@@ -129,27 +129,25 @@ processVimKeystrokeEvent: evt
 				vimCommand asSymbol.
 			].
 			
-			mapping := VimMappings at: key ifAbsent: nil.
-			mapping
+			message := VimMappings at: key ifAbsent: nil.
+			message
 				ifNil: [
 					"Got invalid key sequence, so clear count and command."
 					vimCount := nil.
 					vimCommand := ''.
 				]
 				ifNotNil: [
-					mapping isBlock ifTrue: [
-						vimCount ifNil: [ vimCount := 1 ].
-						vimCount timesRepeat: [ newMode := mapping value: evt value: editor ].
-						newMode isSymbol ifTrue: [
-							self vimMode:​ newMode.
-							'Vim mode is {1}.' format: { vimMode} :: print.
-						].
-					]
+					vimCount ifNil: [ vimCount := 1 ].
+					vimCount timesRepeat: [ newMode := editor perform: message with: evt ].
+					newMode isSymbol ifTrue: [
+						self vimMode:​ newMode.
+						'Vim mode is {1}.' format: { vimMode} :: print.
+					].
 				].
 		].
 
 	evt wasHandled: true.	
-	! !
+! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 06:46:30'!
 vimCommand
@@ -172,139 +170,95 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:41:07'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:55:15'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
 	VimMappings := Dictionary newFrom: {
-		"itm is short for InnerTextMorph."
-		#a -> [ :evt :editor |
-			"Move right one character and enter insert mode."
-			editor append: evt
-		].
+		"Move right one character and enter insert mode."
+		#a -> #append:.
+
 		
-		#A -> [ :evt :editor |
-			"Move to end of line and enter insert mode."
-			editor appendEndOfLine: evt
-		].
+		"Move to end of line and enter insert mode."
+		#A -> #appendEndOfLine:.
 	
-		#b -> [ :evt :editor |
-			"Move to previous word."
-			editor cursorPreviousWord: evt
-		].
+		"Move to previous word."
+		#b -> #cursorPreviousWord:.
 
-		#c -> [ :evt :editor | editor noop: evt ].
+		#c -> #noop:.
 
-		#cw -> [ :evt :editor |
-			"Change word under cursor."
-			editor changeCursorWord: evt
-		].
+		"Change word under cursor."
+		#cw -> #changeCursorWord:.
 
-		'c$' asSymbol -> [ :evt :editor |
-			"Change characters from cursor to end of line."
-			editor changeCursorToEndOfLine: evt
-		].
+		"Change characters from cursor to end of line."
+		'c$' asSymbol -> #changeCursorToEndOfLine:.
 
-		#d -> [ :evt :editor | editor noop: evt ].
+		#d -> #noop:.
 
-		#dd -> [ :evt :editor |
-			"Delete line under cursor."
-			editor deleteCursorLine: evt
-		].
+		"Delete line under cursor."
+		#dd -> #deleteCursorLine:.
 	
-		#dw -> [ :evt :editor |
-			"Delete word under cursor."
-			editor deleteCursorWord: evt
-		].
+		"Delete word under cursor."
+		#dw -> #deleteCursorWord:.
 
-		#g -> true. "continue gathering characters"
+		#g -> #noop.
 		
-		#G -> [ :evt :editor |
-			"Scroll to bottom."
-			editor cursorLastLine: evt
-		].
+		"Scroll to bottom."
+		#G -> #cursorLastLine:.
 		
-		#gg -> [ :evt :editor |
-			"Scroll to top."
-			editor cursorFirstLine: evt
-		].
+		"Scroll to top."
+		#gg -> #cursorFirstLine:.
 
-		#i -> [ :evt :editor |
-			"Enter insert mode."
-			editor insertAtCursor: evt
-		].
-
-		#I -> [ :evt :editor |
-			"Move to beginning of line and enter insert mode."
-			editor insertAtBeginningOfLine: evt.
-		].
+		"Enter insert mode."
+		#i -> #insertAtCursor:.
+		
+		"Move to beginning of line and enter insert mode."
+		#I -> #insertAtBeginningOfLine:.
 
 		"The numbers below are key codes for the arrow keys."
-		#h -> [ :evt :editor | editor moveLeft: evt ].
-		28 -> [ :evt :editor | editor moveLeft: evt ].
-		#j -> [ :evt :editor | editor moveDown: evt ].
-		31 -> [ :evt :editor | editor moveDown: evt ].
-		#k -> [ :evt :editor | editor moveUp: evt ].
-		30 -> [ :evt :editor | editor moveUp: evt ].		
-		#l -> [ :evt :editor | editor moveRight: evt ].
-		29 -> [ :evt :editor | editor moveRight: evt ].
+		#h -> #moveLeft:.
+		28 -> #moveLeft:.
+		#j -> #moveDown:.
+		31 -> #moveDown:.
+		#k -> #moveUp:.
+		30 -> #moveUp:.		
+		#l -> #moveRight:.
+		29 -> #moveRight:.
 		
-		#o -> [ :evt :editor |
-			"Open new line below current line and enter insert mode."
-			editor openLineBelow: evt
-		].
+		"Open new line below current line and enter insert mode."
+		#o -> #openLineBelow:.
 				
-		#O -> [ :evt :editor |
-			"Open new line above current line and enter insert mode."
-			editor openLineAbove: evt
-		].
+		"Open new line above current line and enter insert mode."
+		#O -> #openLineAbove:.
 
-		#p -> [ :evt :editor |
-			"Paste clipboard contents at cursor position."
-			editor pasteAtCursor: evt
-		].
+		"Paste clipboard contents at cursor position."
+		#p -> #pasteAtCursor:.
 
-		#u -> [ :evt :editor |
-			"Undo last action."
-			editor undoLastAction: evt
-		].
+		"Undo last action."
+		#u -> #undoLastAction:.
 		
-		#w -> [ :evt :editor |
-			"Move to next word."
-			editor cursorNextWord: evt
-		].
+		"Move to next word."
+		#w -> #cursorNextWord:.
 
-		#x -> [ :evt :editor |
-			"Delete character under cursor."
-			editor deleteCursorCharacter: evt
-		].
+		"Delete character under cursor."
+		#x -> #deleteCursorCharacter:.
 
-		#y -> [ :evt :editor | editor noop: evt ].
+		#y -> #noop:.
 		
-		#yy -> [ :evt :editor |
-			"Yank (copy) current line."
-			editor copyCursorLine: evt
-		].
+		"Yank (copy) current line."
+		#yy -> #copyCursorLine:.
 	
-		'0' asSymbol -> [ :evt :editor |
-			"Move to start of current line."
-			editor cursorBeginningOfLine: evt
-		].
+		"Move to start of current line."
+		'0' asSymbol -> #cursorBeginningOfLine:.
 
-		'^' asSymbol -> [ :evt :editor |
-			"Move to first non-whitespace character in current line."
-			editor cursorFirstNonBlankOfLine: evt
-		].
+		"Move to first non-whitespace character in current line."
+		'^' asSymbol -> #cursorFirstNonBlankOfLine:.
 
-		'$' asSymbol -> [ :evt :editor |
-			"Move to end of current line."
-			editor cursorEndOfLine: evt
-		].
+		"Move to end of current line."
+		'$' asSymbol -> #cursorEndOfLine:.
 
-		#~ -> [ :evt :editor |
-			"Change the case of the current character or selected characters."
-			editor toggleCase: evt
-		]
+		"Change the case of the current character or selected characters."
+		#~ -> #toggleCase:.
 	}.
 ! !
 
