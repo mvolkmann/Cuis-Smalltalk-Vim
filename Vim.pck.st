@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 6:55:37 am'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 8:50:12 am'!
 'Description '!
-!provides: 'Vim' 1 78!
+!provides: 'Vim' 1 80!
 SystemOrganization addCategory: #Vim!
 
 
@@ -15,14 +15,14 @@ logAs: aString
     message := template format: {sender. aString. self class name. self}.
     message print.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:07:45'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:36:52'!
 drawOn: aCanvas
 	"Draw the receiver on a canvas"
 	| rect |
 
 	false ifTrue: [ self debugDrawLineRectsOn: aCanvas ].  "show line rects for debugging"
 
-	vimMode = #command ifTrue: [
+	vimMode = #command or: [ vimMode = #visual] :: ifTrue: [
 		rect := Rectangle origin: 0@0 extent: extent.
 		aCanvas fillRectangle: rect color: (Color pink alpha: 0.1).
 	].
@@ -59,7 +59,7 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:10:50'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:48:56'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image to support Vim commands."
 	| action |
@@ -93,15 +93,22 @@ processKeystrokeEvent: evt
 			(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].
 		]
 		ifFalse: [
-			self processVimKeystrokeEvent: evt.
-			evt wasHandled ifTrue: [
-				"The next two lines were copied from handleInteraction:."
-				self selectionChanged.
-				self updateFromTextComposition.
-			].
+			vimMode = #visual and: [ evt isEsc ] ::
+				ifTrue: [
+					editor deselectAndPlaceCursorAt: (editor pointBlock stringIndex).
+					vimMode := #command
+				]
+				ifFalse: [
+					self processVimKeystrokeEvent: evt.
+					evt wasHandled ifTrue: [
+						"The next two lines were copied from handleInteraction:."
+						self selectionChanged.
+						self updateFromTextComposition.
+					]
+				]
 		].
 		
-		(owner is: #ScrollPane) ifTrue: [ owner scrollSelectionIntoView ].
+	(owner is: #ScrollPane) ifTrue: [ owner scrollSelectionIntoView ].
 
 ! !
 
@@ -170,7 +177,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:55:15'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:50:02'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -237,6 +244,9 @@ initialize
 		"Undo last action."
 		#u -> #undoLastAction:.
 		
+		"Enter visual mode."
+		#v -> #visualMode:.
+
 		"Move to next word."
 		#w -> #cursorNextWord:.
 
@@ -449,21 +459,22 @@ insertAtCursor: evt
 	self reset.
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:11:45'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:43:52'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
-	| char shift indices newPosition vimMode |
+	| char selecting shiftPressed indices newPosition vimMode |
 
 	char := aKeyboardEvent keyCharacter.
-	shift := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
+	shiftPressed := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
+	selecting := shiftPressed or: [ morph vimMode = #visual ].
 	indices := self
-		setIndices: shift
+		setIndices: selecting
 		forward: forward.
 	newPosition := directionBlock value: (indices at: #moving).
 
 	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
-	shift and: [ vimMode ~= #command ] ::
+	selecting and: [ vimMode ~= #command ] ::
 		ifTrue: [
 			self
 				selectMark: (indices at: #fixed)
@@ -530,6 +541,27 @@ reset
 	innerTextMorph := self morph.			
 	innerTextMorph vimCount: nil.
 	innerTextMorph vimCommand: ''.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:44:06'!
+setIndices: selecting forward: forward
+	"Little helper method that sets the moving and fixed indices according to some flags."
+	| indices |
+	indices := Dictionary new.
+	(selecting and:[Preferences at: #selectionsMayShrink])
+		ifTrue: [
+			indices at: #moving put: self pointIndex.
+			indices at: #fixed put: self markIndex
+		] ifFalse: [
+			forward
+				ifTrue:[
+					indices at: #moving put: self stopIndex.
+					indices at: #fixed put: self startIndex.
+				] ifFalse: [
+					indices at: #moving put: self startIndex.
+					indices at: #fixed put: self stopIndex.
+				]
+		].
+	^indices! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:34:29'!
 toggleCase: evt
