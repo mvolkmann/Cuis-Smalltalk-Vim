@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 3:28:21 pm'!
+'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 4:01:08 pm'!
 'Description '!
-!provides: 'Vim' 1 85!
+!provides: 'Vim' 1 87!
 SystemOrganization addCategory: #Vim!
 
 
@@ -15,14 +15,14 @@ logAs: aString
     message := template format: {sender. aString. self class name. self}.
     message print.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:36:52'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:54:07'!
 drawOn: aCanvas
 	"Draw the receiver on a canvas"
 	| rect |
 
 	false ifTrue: [ self debugDrawLineRectsOn: aCanvas ].  "show line rects for debugging"
 
-	vimMode = #command or: [ vimMode = #visual] :: ifTrue: [
+	vimMode = #insert ifFalse: [
 		rect := Rectangle origin: 0@0 extent: extent.
 		aCanvas fillRectangle: rect color: (Color pink alpha: 0.1).
 	].
@@ -59,7 +59,7 @@ initialize
 	vimMode := #insert.
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:48:56'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:56:22'!
 processKeystrokeEvent: evt
 	"This method was modified from the version in the base image to support Vim commands."
 	| action |
@@ -93,7 +93,7 @@ processKeystrokeEvent: evt
 			(hasUnacceptedEdits and: [ acceptOn == #any ]) ifTrue: [ self acceptContents ].
 		]
 		ifFalse: [
-			vimMode = #visual and: [ evt isEsc ] ::
+			evt isEsc and: [vimMode = #visual or: [vimMode = #visualLine]] ::
 				ifTrue: [
 					editor deselectAndPlaceCursorAt: (editor pointBlock stringIndex).
 					vimMode := #command
@@ -484,21 +484,22 @@ insertAtCursor: evt
 	self reset.
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:09:21'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:59:11'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
-	| char selecting shiftPressed indices newPosition vimMode |
+	| selecting shiftPressed indices newPosition vimMode |
 
-	char := aKeyboardEvent keyCharacter.
 	shiftPressed := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
-	selecting := shiftPressed or: [ morph vimMode = #visual or: [ morph vimMode = #visualLine ] ].
+	selecting := shiftPressed or: [morph vimMode = #visual] or: [morph vimMode = #visualLine].
+	selecting logAs: 'selecting'.
 	indices := self
 		setIndices: selecting
 		forward: forward.
 	newPosition := directionBlock value: (indices at: #moving).
 
 	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
+	vimMode logAs: 'vimMode'.
 	selecting and: [ vimMode ~= #command ] ::
 		ifTrue: [
 			self
@@ -611,17 +612,19 @@ undoLastAction: evt
 	self undo.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:06:23'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:00:08'!
 visualLineMode: evt
 	"Switch to visual line mode for selecting text."
 
+	self reset.
 	^ #visualLine
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:36:12'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:00:19'!
 visualMode: evt
 	"Switch to visual mode for selecting text."
 
+	self reset.
 	^ #visual
 ! !
 
@@ -642,16 +645,17 @@ cut
 deselect
 	markBlock := pointBlock.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 19:34:10'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:32:35'!
 initialize
 	emphasisHere := #().
 	initialSelectionStart := nil.
 	initialSelectionStop := nil.
 	doWordSelection := false.
 	doParagraphSelection := false.
-	"defaultFont := nil."
+	defaultFont := nil.
+	
 	"TODO: Why does this affect Text Editor and Workspace windows, but not Browser code panes?"
-	defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14.! !
+	"defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14."! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:55:09'!
 markBlock
