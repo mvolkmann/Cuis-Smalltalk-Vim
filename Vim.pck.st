@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6895] on 31 December 2024 at 4:21:47 pm'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 9:16:04 am'!
 'Description '!
-!provides: 'Vim' 1 90!
+!provides: 'Vim' 1 93!
 SystemOrganization addCategory: #Vim!
 
 
@@ -177,7 +177,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:06:57'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:15:08'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -258,7 +258,7 @@ initialize
 		"Delete character under cursor."
 		#x -> #deleteSelection:.
 
-		#y -> #noop:.
+		#y -> #copySelection:.
 		
 		"Yank (copy) current line."
 		#yy -> #copyCursorLine:.
@@ -276,6 +276,11 @@ initialize
 		#~ -> #toggleCase:.
 	}.
 ! !
+
+!TextComposition methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:36:12'!
+selectionStopIndex
+
+	^ selectionStopBlock stringIndex.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:09:50'!
 append: evt
@@ -317,6 +322,20 @@ copyCursorLine: evt
 	"Restore cursor position."
 	self moveCursor: [ :position | index ] forward: false event: evt.
 	self reset.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:15:08'!
+copySelection: evt
+	"Copy selection if any."
+	
+	self hasSelection ifTrue: [
+		| index |
+		index := self markBlock stringIndex.
+		self copySelection.
+		self deselectAndPlaceCursorAt: index.
+		morph vimMode: #command.
+		self reset.
+	]
+! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:32:42'!
 cursorBeginningOfLine: evt
@@ -486,7 +505,7 @@ insertAtCursor: evt
 	self reset.
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:59:11'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 08:52:10'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
@@ -503,10 +522,7 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
 	vimMode logAs: 'vimMode'.
 	selecting and: [ vimMode ~= #command ] ::
-		ifTrue: [
-			self
-				selectMark: (indices at: #fixed)
-				point: newPosition - 1 ]
+		ifTrue: [ self selectMark: (indices at: #fixed) point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:21:03'!
@@ -526,11 +542,23 @@ moveRight: evt
 	self cursorRight: evt.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:21:21'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 08:55:06'!
 moveUp: evt
-
+	
+	"stopIndex := self markBlock textLine last.
+	stopIndex logAs: 'stopIndex'."
 	self cursorUp: evt.
-	self morph vimMode = #visualLine ifTrue: [ self selectLine ].	
+	"self morph vimMode = #visualLine ifTrue: [ self selectLine ]."	
+	"savedIndex := self pointBlock textLine first."
+	
+	"TODO: Why does this only work the first time?"
+	"self morph vimMode = #visualLine ifTrue: [
+		startIndex := self pointBlock textLine first.
+		startIndex logAs: 'startIndex'.
+		self selectFrom: startIndex to: stopIndex.
+		self moveCursor: [ :position | savedIndex ] forward: false event: evt.
+	]."
+	
 	self reset.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:39:56'!
@@ -642,15 +670,16 @@ visualMode: evt
 	^ #visual
 ! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/29/2024 06:37:04'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 07:32:16'!
 cut
 	"Cut out the current selection and redisplay if necessary."
 	"This is a user command, and generates undo"
-
 	| selection |
+	
 	"TODO: I commented out this line because it breaks the
 	ability to delete an empty line using the Vim dd command.
 	self lineSelectAndEmptyCheck: [^ self]."
+	
 	selection := self selection.
 	self replaceSelectionWith: self nullText.
 	self clipboardTextPut: selection.! !
@@ -674,3 +703,8 @@ initialize
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:55:09'!
 markBlock
 	^markBlock! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:32:47'!
+textComposition
+
+	^ textComposition! !
