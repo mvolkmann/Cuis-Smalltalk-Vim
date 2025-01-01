@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 9:56:41 am'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 10:42:45 am'!
 'Description '!
-!provides: 'Vim' 1 95!
+!provides: 'Vim' 1 98!
 SystemOrganization addCategory: #Vim!
 
 
@@ -14,6 +14,11 @@ logAs: aString
     template := 'In {1}, {2} is a {3} = {4}'.
     message := template format: {sender. aString. self class name. self}.
     message print.! !
+
+!CharacterBlock methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:32:05'!
+text
+	"I added this because it is needed by the Vim package."
+	^ text.! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:54:07'!
 drawOn: aCanvas
@@ -58,6 +63,18 @@ initialize
 	vimCount := nil.
 	vimMode := #insert.
 ! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:39'!
+pendingChangeTo: aBoolean
+	pendingChangeTo := aBoolean! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:30'!
+pendingDeleteTo: aBoolean
+	pendingDeleteTo := aBoolean! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:55'!
+pendingFind: aBoolean
+	pendingFind := aBoolean! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:56:22'!
 processKeystrokeEvent: evt
@@ -112,7 +129,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:45:50'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:40:22'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key message newMode value |
@@ -121,15 +138,31 @@ processVimKeystrokeEvent: evt
 	value := evt keyValue.
 	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } :: print."
 	
-	"Only add zero character to vimCount if it is already set
-	in order to get values like 10 or 20."
-	char isDigit and: [ char ~= $0 or: [ vimCount notNil ] ] ::
-		ifTrue: [
+	true caseOf: {
+		[pendingChangeTo] -> [
+			'processing pending change to' print.
+			pendingChangeTo := false.
+			editor reset.
+		].
+		[pendingDeleteTo] -> [
+			'processing pending delete to' print.
+			pendingDeleteTo := false.
+			editor reset.
+		].
+		[pendingFind] -> [
+			'processing pending find' print.
+			editor moveToCharacter: char event: evt.
+			pendingFind := false.
+			editor reset.
+		].
+		[char isDigit and: [char ~= $0 or: [vimCount notNil]]] -> [
+			"Only add zero character to vimCount if it is already set
+			in order to get values like 10 or 20."
 			vimCount
 				ifNil: [ vimCount := char digitValue ]
 				ifNotNil: [ vimCount := vimCount asString, char asString :: asNumber ].
 		]
-		ifFalse: [
+	} otherwise: [
 			key := value < 32 ifTrue: value ifFalse: [
 				"TODO: How does vimCommand ever get set to nil?"
 				vimCommand := vimCommand ifNil: [ char asString ] ifNotNil: [ vimCommand, char asString ].
@@ -151,10 +184,16 @@ processVimKeystrokeEvent: evt
 						'Vim mode is {1}.' format: { vimMode} :: print.
 					].
 				].
-		].
+	].
 
 	evt wasHandled: true.	
 ! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:19:33'!
+reset
+
+	vimCount := nil.
+	vimCommand := ''.! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 06:46:30'!
 vimCommand
@@ -177,7 +216,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:15:08'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:10:44'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -193,6 +232,9 @@ initialize
 
 		#c -> #noop:.
 
+		"Change to a given character."
+		#ct -> #changeToCharacter:.
+	
 		"Change word under cursor."
 		#cw -> #changeCursorWord:.
 
@@ -203,6 +245,9 @@ initialize
 
 		"Delete line under cursor."
 		#dd -> #deleteCursorLine:.
+		
+		"Delete to a given character."
+		#dt -> #deleteToCharacter:.
 	
 		"Delete word under cursor."
 		#dw -> #deleteCursorWord:.
@@ -210,6 +255,9 @@ initialize
 		"Delete word under cursor."
 		'd$' asSymbol -> #deleteCursorToEndOfLine:.
 
+		"Find a given character."
+		#f -> #findCharacter:.
+		
 		#g -> #noop:.
 		
 		"Scroll to bottom."
@@ -308,19 +356,25 @@ changeCursorWord: evt
 	self deleteCursorWord: evt. "sends reset"
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:44:28'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:26'!
+changeToCharacter: evt
+	
+	morph pendingChangeTo: true! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:01:15'!
 copyCursorLine: evt
 	"Copy line containing cursor."
 	| index |
 
 	index := self pointBlock stringIndex.
-	"This moves the cursor to the end of the line."
-	"TODO: This is not including the newline at the end, but needs to!!"
+	
 	self selectLineWithEnding.
 	self copySelection.
 	self deselect.
+	
 	"Restore cursor position."
 	self moveCursor: [ :position | index ] forward: false event: evt.
+	
 	self reset.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:18:02'!
@@ -491,6 +545,16 @@ deleteSelection: evt
 	self reset.
 ! !
 
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:13'!
+deleteToCharacter: evt
+	
+	morph pendingDeleteTo: true! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:43'!
+findCharacter: evt
+	
+	morph pendingFind: true! !
+
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:22:01'!
 insertAtBeginningOfLine: evt
 	"Move cursor to beginning of line and enter insert mode."
@@ -543,6 +607,42 @@ moveRight: evt
 	self cursorRight: evt.
 	self reset.! !
 
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:39:05'!
+moveToCharacter: aCharacter
+	"Move cursor to next occurrence of aCharacter in the current line."
+	| offset pointBlock startIndex stopIndex string substring |
+	
+	pointBlock := self pointBlock.
+	string := pointBlock text string.
+	
+	"Get the characters from the cursor position to the end of the current line."
+	startIndex := pointBlock stringIndex.
+	stopIndex := pointBlock textLine last.
+	substring := string copyFrom: startIndex to: stopIndex.
+
+	offset := substring findString: aCharacter asString.
+	offset logAs: 'offset'.
+	offset > 0 ifTrue: [
+	].
+	! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:42:31'!
+moveToCharacter: aCharacter event: evt
+	"Move cursor to next occurrence of aCharacter in the current line."
+	| offset pointBlock startIndex stopIndex substring |
+	
+	"Get the characters from the cursor position to the end of the current line."
+	pointBlock := self pointBlock.
+	startIndex := pointBlock stringIndex + 1.
+	stopIndex := pointBlock textLine last.
+	substring := pointBlock text string copyFrom: startIndex to: stopIndex.
+
+	offset := substring findString: aCharacter asString.
+	offset > 0 ifTrue: [
+		self moveCursor: [ :position | startIndex + offset - 1] forward: true event: evt.
+	].
+	! !
+
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 08:55:06'!
 moveUp: evt
 	
@@ -587,7 +687,7 @@ openLineBelow: evt
 	^ #insert.
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:53:15'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:59:57'!
 pasteAtCursor: evt
 	"Paste clipboard contents at cursor location."
 	| endsWithNewline text |
@@ -596,18 +696,14 @@ pasteAtCursor: evt
 	endsWithNewline := text isEmpty not and: [text last isLineSeparator].
 
 	"When the selection ends in a newline character, assume we are pasting whole lines." 	
-	"endsWithNewline ifTrue: [self cursorDown: evt] ifFalse: [self cursorRight: evt]."
 	endsWithNewline ifTrue: [] ifFalse: [self cursorRight: evt].
 
 	self paste.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 05:58:16'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:19:47'!
 reset
-	| innerTextMorph |
-	innerTextMorph := self morph.			
-	innerTextMorph vimCount: nil.
-	innerTextMorph vimCommand: ''.! !
+	self morph reset! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:44:06'!
 setIndices: selecting forward: forward
