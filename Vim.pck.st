@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 10:59:45 am'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 11:01:13 am'!
 'Description '!
-!provides: 'Vim' 1 101!
+!provides: 'Vim' 1 102!
 SystemOrganization addCategory: #Vim!
 
 
@@ -129,7 +129,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:59:43'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:00:42'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key message newMode value |
@@ -137,8 +137,6 @@ processVimKeystrokeEvent: evt
 	char := evt keyCharacter.
 	value := evt keyValue.
 	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } :: print."
-	pendingFind logAs: 'pendingFind'.
-	pendingDeleteTo logAs: 'pendingDeleteTo'.
 	
 	true caseOf: {
 		[pendingChangeTo] -> [
