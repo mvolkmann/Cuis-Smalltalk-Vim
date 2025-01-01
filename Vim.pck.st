@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 11:01:13 am'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 11:12:40 am'!
 'Description '!
-!provides: 'Vim' 1 102!
+!provides: 'Vim' 1 103!
 SystemOrganization addCategory: #Vim!
 
 
@@ -215,7 +215,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:10:44'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:02:51'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -280,6 +280,9 @@ initialize
 		30 -> #moveUp:.		
 		#l -> #moveRight:.
 		29 -> #moveRight:.
+
+		"Join next line to current line."
+		#J -> #joinLines:.
 		
 		"Open new line below current line and enter insert mode."
 		#o -> #openLineBelow:.
@@ -607,7 +610,17 @@ insertAtCursor: evt
 	self reset.
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 08:52:10'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:12:28'!
+joinLines: evt
+	"Join next line to the current line."
+	| index |
+	
+	index := self pointBlock textLine last.
+	self selectFrom: index to: index.
+	self replaceSelectionWith: ' '.
+	self reset.! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:11:47'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
@@ -615,14 +628,12 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 
 	shiftPressed := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
 	selecting := shiftPressed or: [morph vimMode = #visual] or: [morph vimMode = #visualLine].
-	selecting logAs: 'selecting'.
 	indices := self
 		setIndices: selecting
 		forward: forward.
 	newPosition := directionBlock value: (indices at: #moving).
 
 	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
-	vimMode logAs: 'vimMode'.
 	selecting and: [ vimMode ~= #command ] ::
 		ifTrue: [ self selectMark: (indices at: #fixed) point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
