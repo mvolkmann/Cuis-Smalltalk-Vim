@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 11:12:40 am'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 4:52:48 pm'!
 'Description '!
-!provides: 'Vim' 1 103!
+!provides: 'Vim' 1 107!
 SystemOrganization addCategory: #Vim!
 
 
@@ -20,17 +20,16 @@ text
 	"I added this because it is needed by the Vim package."
 	^ text.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:54:07'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:52:44'!
 drawOn: aCanvas
 	"Draw the receiver on a canvas"
-	| rect |
+	| lineWidth x |
 
 	false ifTrue: [ self debugDrawLineRectsOn: aCanvas ].  "show line rects for debugging"
 
-	vimMode = #insert ifFalse: [
-		rect := Rectangle origin: 0@0 extent: extent.
-		aCanvas fillRectangle: rect color: (Color pink alpha: 0.1).
-	].
+	lineWidth := 5.
+	x := extent x - lineWidth.
+	aCanvas line: x @ 0 to: x @ extent y width: lineWidth color: self modeColor.
 	
 	aCanvas
 		drawTextComposition: self textComposition
@@ -63,6 +62,17 @@ initialize
 	vimCount := nil.
 	vimMode := #insert.
 ! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:47:00'!
+modeColor
+
+	^ vimMode caseOf: {
+		[#command] -> [Color red].
+		[#insert] -> [Color transparent].
+		[#visual] -> [Color blue].
+		[#visualLine] -> [Color purple]
+	} otherwise: [Color gray]
+		! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:39'!
 pendingChangeTo: aBoolean
@@ -507,7 +517,7 @@ deleteCursorLine: evt
 	
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:10:18'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:51:13'!
 deleteCursorToEndOfLine: evt
 	"Delete from cursor to end of line."
 	| index last pointBlock |
@@ -516,9 +526,6 @@ deleteCursorToEndOfLine: evt
 	pointBlock := self pointBlock.
 	index := pointBlock stringIndex.
 	last := pointBlock textLine last.
-	self text logAs: 'text'.
-	(self text at: last) asciiValue :: logAs: 'last character'.
-	(self text at: last) isLineSeparator :: logAs: 'isLineSeparator'.
 	(self text at: last) isLineSeparator ifTrue: [ last := last - 1 ].
 	self selectFrom: index to: last.
 	self cut.
@@ -541,7 +548,7 @@ deleteCursorWord: evt
 	
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 09:01:39'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:48:17'!
 deleteSelection: evt
 	"Delete selected text or character at cursor."	
 	| markBlock pointBlock startIndex stopIndex |
@@ -550,11 +557,7 @@ deleteSelection: evt
 	startIndex := markBlock stringIndex.
 	pointBlock := self pointBlock.
 	stopIndex := pointBlock stringIndex - 1.
-	startIndex logAs: 'startIndex'.
-	stopIndex logAs: 'stopIndex'.
-	startIndex > stopIndex ifTrue: [
-		self selectFrom: startIndex to: startIndex.
-	].
+	startIndex > stopIndex ifTrue: [ self selectFrom: startIndex to: startIndex ].
 	self cut.
 	self reset.
 ! !
