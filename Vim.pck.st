@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 10:42:45 am'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 10:59:45 am'!
 'Description '!
-!provides: 'Vim' 1 98!
+!provides: 'Vim' 1 101!
 SystemOrganization addCategory: #Vim!
 
 
@@ -129,7 +129,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:40:22'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:59:43'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key message newMode value |
@@ -137,23 +137,24 @@ processVimKeystrokeEvent: evt
 	char := evt keyCharacter.
 	value := evt keyValue.
 	"'keyCharacter = {1}, keyValue = {2}' format: { char. value } :: print."
+	pendingFind logAs: 'pendingFind'.
+	pendingDeleteTo logAs: 'pendingDeleteTo'.
 	
 	true caseOf: {
 		[pendingChangeTo] -> [
-			'processing pending change to' print.
+			editor changeToCharacter: char event: evt.
 			pendingChangeTo := false.
-			editor reset.
+			self reset.
 		].
 		[pendingDeleteTo] -> [
-			'processing pending delete to' print.
+			editor deleteToCharacter: char event: evt.
 			pendingDeleteTo := false.
-			editor reset.
+			self reset.
 		].
 		[pendingFind] -> [
-			'processing pending find' print.
 			editor moveToCharacter: char event: evt.
 			pendingFind := false.
-			editor reset.
+			self reset.
 		].
 		[char isDigit and: [char ~= $0 or: [vimCount notNil]]] -> [
 			"Only add zero character to vimCount if it is already set
@@ -361,6 +362,18 @@ changeToCharacter: evt
 	
 	morph pendingChangeTo: true! !
 
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:59:26'!
+changeToCharacter: aCharacter event: evt
+	"Change text from cursor to next occurrence of aCharacter in the current line."
+	| index |
+	
+	index := self indexOfNext: aCharacter.
+	index > 0 ifTrue: [
+		self selectFrom: self pointBlock stringIndex to: index - 1.
+		self cut.
+		morph vimMode: #insert.
+	].! !
+
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:01:15'!
 copyCursorLine: evt
 	"Copy line containing cursor."
@@ -550,10 +563,36 @@ deleteToCharacter: evt
 	
 	morph pendingDeleteTo: true! !
 
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:53:30'!
+deleteToCharacter: aCharacter event: evt
+	"Delete text from cursor to next occurrence of aCharacter in the current line."
+	| index |
+	
+	index := self indexOfNext: aCharacter.
+	index > 0 ifTrue: [
+		self selectFrom: self pointBlock stringIndex to: index - 1.
+		self cut.
+	].! !
+
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:43'!
 findCharacter: evt
 	
 	morph pendingFind: true! !
+
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:48:17'!
+indexOfNext: aCharacter
+	"Answer indes of next occurrence of aCharacter in the current line."
+	| offset pointBlock startIndex stopIndex substring |
+	
+	"Get the characters from the cursor position to the end of the current line."
+	pointBlock := self pointBlock.
+	startIndex := pointBlock stringIndex + 1.
+	stopIndex := pointBlock textLine last.
+	substring := pointBlock text string copyFrom: startIndex to: stopIndex.
+
+	offset := substring findString: aCharacter asString.
+	offset > 0 ifTrue: [^ startIndex + offset - 1] ifFalse: [^ 0].
+	! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:22:01'!
 insertAtBeginningOfLine: evt
@@ -607,41 +646,15 @@ moveRight: evt
 	self cursorRight: evt.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:39:05'!
-moveToCharacter: aCharacter
-	"Move cursor to next occurrence of aCharacter in the current line."
-	| offset pointBlock startIndex stopIndex string substring |
-	
-	pointBlock := self pointBlock.
-	string := pointBlock text string.
-	
-	"Get the characters from the cursor position to the end of the current line."
-	startIndex := pointBlock stringIndex.
-	stopIndex := pointBlock textLine last.
-	substring := string copyFrom: startIndex to: stopIndex.
-
-	offset := substring findString: aCharacter asString.
-	offset logAs: 'offset'.
-	offset > 0 ifTrue: [
-	].
-	! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:42:31'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:47:25'!
 moveToCharacter: aCharacter event: evt
 	"Move cursor to next occurrence of aCharacter in the current line."
-	| offset pointBlock startIndex stopIndex substring |
+	| index |
 	
-	"Get the characters from the cursor position to the end of the current line."
-	pointBlock := self pointBlock.
-	startIndex := pointBlock stringIndex + 1.
-	stopIndex := pointBlock textLine last.
-	substring := pointBlock text string copyFrom: startIndex to: stopIndex.
-
-	offset := substring findString: aCharacter asString.
-	offset > 0 ifTrue: [
-		self moveCursor: [ :position | startIndex + offset - 1] forward: true event: evt.
-	].
-	! !
+	index := self indexOfNext: aCharacter.
+	index > 0 ifTrue: [
+		self moveCursor: [:position | index] forward: true event: evt
+	].! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 08:55:06'!
 moveUp: evt
