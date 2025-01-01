@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 9:16:04 am'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 9:56:41 am'!
 'Description '!
-!provides: 'Vim' 1 93!
+!provides: 'Vim' 1 95!
 SystemOrganization addCategory: #Vim!
 
 
@@ -308,7 +308,7 @@ changeCursorWord: evt
 	self deleteCursorWord: evt. "sends reset"
 	^ #insert.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:32:01'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:44:28'!
 copyCursorLine: evt
 	"Copy line containing cursor."
 	| index |
@@ -316,20 +316,21 @@ copyCursorLine: evt
 	index := self pointBlock stringIndex.
 	"This moves the cursor to the end of the line."
 	"TODO: This is not including the newline at the end, but needs to!!"
-	self selectLine.
+	self selectLineWithEnding.
 	self copySelection.
 	self deselect.
 	"Restore cursor position."
 	self moveCursor: [ :position | index ] forward: false event: evt.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:15:08'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:18:02'!
 copySelection: evt
 	"Copy selection if any."
 	
 	self hasSelection ifTrue: [
 		| index |
 		index := self markBlock stringIndex.
+		index logAs: 'index'.
 		self copySelection.
 		self deselectAndPlaceCursorAt: index.
 		morph vimMode: #command.
@@ -525,11 +526,11 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 		ifTrue: [ self selectMark: (indices at: #fixed) point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:21:03'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:37:18'!
 moveDown: evt
 
 	self cursorDown: evt.
-	self morph vimMode = #visualLine ifTrue: [ self selectLine ].	
+	self morph vimMode = #visualLine ifTrue: [ self selectLineWithEnding ].	
 	self reset.! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:06:19'!
@@ -586,12 +587,18 @@ openLineBelow: evt
 	^ #insert.
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:26:15'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:53:15'!
 pasteAtCursor: evt
 	"Paste clipboard contents at cursor location."
+	| endsWithNewline text |
 	
-	"TODO: Fix this to only move down if clipboard contents ends in a newline."
-	self cursorDown: evt.
+	text := self clipboardStringOrText.
+	endsWithNewline := text isEmpty not and: [text last isLineSeparator].
+
+	"When the selection ends in a newline character, assume we are pasting whole lines." 	
+	"endsWithNewline ifTrue: [self cursorDown: evt] ifFalse: [self cursorRight: evt]."
+	endsWithNewline ifTrue: [] ifFalse: [self cursorRight: evt].
+
 	self paste.
 	self reset.! !
 
@@ -646,12 +653,12 @@ undoLastAction: evt
 	self undo.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:15:36'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:52:13'!
 visualLineMode: evt
 	"Switch to visual line mode for selecting text."
 
 	"Select the current line."
-	self selectLine.
+	self selectLineWithEnding.
 
 	self reset.
 	^ #visualLine
@@ -703,6 +710,16 @@ initialize
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:55:09'!
 markBlock
 	^markBlock! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:50:49'!
+selectLineWithEnding
+	"Make the receiver's selection, encompass the current line including the line ending character."
+	| interval |
+	
+	interval := model actualContents encompassLine: self selectionInterval.
+	"Add one to end of interval to include line ending character."
+	interval setFrom: interval first to: interval last + 1 count: interval size + 1.
+	self selectInterval: interval! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:32:47'!
 textComposition

@@ -10,6 +10,7 @@ please let me know by creating an issue and I will consider adding it.
 I'm not aware of any issues with using this package, but for now
 only use this in fresh images that do not contain important code changes
 you cannot afford to lose.
+So far this has only been tested in macOS.
 
 To install this, clone the repository and
 evaluate `Feature require: 'Vim'` in a Workspace.
