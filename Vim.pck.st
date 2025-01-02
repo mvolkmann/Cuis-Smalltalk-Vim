@@ -1,9 +1,28 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 7:35:07 pm'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 8:19:18 pm'!
 'Description '!
-!provides: 'Vim' 1 115!
+!provides: 'Vim' 1 116!
 SystemOrganization addCategory: #Vim!
 
 
+!classDefinition: #Vim category: #Vim!
+Object subclass: #Vim
+	instanceVariableNames: ''
+	classVariableNames: ''
+	poolDictionaries: ''
+	category: 'Vim'!
+!classDefinition: 'Vim class' category: #Vim!
+Vim class
+	instanceVariableNames: ''!
+
+
+!Vim commentStamp: 'RMV 1/1/2025 20:19:13' prior: 0!
+This class only exists to call the `InnerTextMorph` class method `initialize`
+when the Vim package is loaded by evaluating `Feature require: Vim`.!
+
+!Vim class methodsFor: 'as yet unclassified' stamp: 'RMV 1/1/2025 20:18:15'!
+initialize
+	
+	InnerTextMorph initialize! !
 
 !Object methodsFor: '*Vim' stamp: 'RMV 12/27/2024 14:00:25'!
 logAs: aString
@@ -861,3 +880,4 @@ visualMode: evt
 	
 	self reset.
 	^ #visual! !
+Vim initialize!
