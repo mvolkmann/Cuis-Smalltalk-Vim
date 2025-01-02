@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 7:11:39 pm'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 7:35:07 pm'!
 'Description '!
-!provides: 'Vim' 1 111!
+!provides: 'Vim' 1 115!
 SystemOrganization addCategory: #Vim!
 
 
@@ -75,17 +75,25 @@ modeColor
 	} otherwise: [Color gray]
 		! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:39'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:22:07'!
 pendingChangeTo: aBoolean
+	
 	pendingChangeTo := aBoolean! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:30'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:22:12'!
 pendingDeleteTo: aBoolean
+	
 	pendingDeleteTo := aBoolean! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:08:55'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:22:18'!
 pendingFind: aBoolean
+	
 	pendingFind := aBoolean! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:22:24'!
+pendingReplace: aBoolean
+	
+	pendingReplace := aBoolean! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:56:22'!
 processKeystrokeEvent: evt
@@ -140,7 +148,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:00:42'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:33:39'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key message newMode value |
@@ -153,17 +161,18 @@ processVimKeystrokeEvent: evt
 		[pendingChangeTo] -> [
 			editor changeToCharacter: char event: evt.
 			pendingChangeTo := false.
-			self reset.
 		].
 		[pendingDeleteTo] -> [
 			editor deleteToCharacter: char event: evt.
 			pendingDeleteTo := false.
-			self reset.
 		].
 		[pendingFind] -> [
 			editor moveToCharacter: char event: evt.
 			pendingFind := false.
-			self reset.
+		].
+		[pendingReplace] -> [
+			editor replaceCharacter: char event: evt.
+			pendingReplace := false.
 		].
 		[char isDigit and: [char ~= $0 or: [vimCount notNil]]] -> [
 			"Only add zero character to vimCount if it is already set
@@ -227,7 +236,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:02:51'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:17:26'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -305,6 +314,9 @@ initialize
 		"Paste clipboard contents at cursor position."
 		#p -> #pasteAtCursor:.
 
+		"Replace character at cursor."
+		#r -> #replaceCharacter:.
+		
 		"Undo last action."
 		#u -> #undoLastAction:.
 		
@@ -344,25 +356,11 @@ selectionStopIndex
 
 	^ selectionStopBlock stringIndex.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:26'!
-changeToCharacter: evt
-	
-	morph pendingChangeTo: true! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:13'!
-deleteToCharacter: evt
-	
-	morph pendingDeleteTo: true! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:43'!
-findCharacter: evt
-	
-	morph pendingFind: true! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:09:11'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:20:49'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
-	directionBlock is a one argument Block that computes the new Position from a given one."
+	directionBlock is a one argument Block that computes the new Position from a given one.
+	This method was modified to take the Vim mode into account."
 	| selecting shiftPressed indices newPosition vimMode |
 
 	shiftPressed := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
@@ -377,27 +375,6 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	selecting and: [ vimMode ~= #command ] ::
 		ifTrue: [ self selectMark: (indices at: #fixed) point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:44:06'!
-setIndices: selecting forward: forward
-	"Little helper method that sets the moving and fixed indices according to some flags."
-	| indices |
-	indices := Dictionary new.
-	(selecting and:[Preferences at: #selectionsMayShrink])
-		ifTrue: [
-			indices at: #moving put: self pointIndex.
-			indices at: #fixed put: self markIndex
-		] ifFalse: [
-			forward
-				ifTrue:[
-					indices at: #moving put: self stopIndex.
-					indices at: #fixed put: self startIndex.
-				] ifFalse: [
-					indices at: #moving put: self startIndex.
-					indices at: #fixed put: self stopIndex.
-				]
-		].
-	^indices! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:47:19'!
 append: evt
@@ -429,7 +406,12 @@ changeCursorWord: evt
 	self deleteCursorWord: evt. "sends reset"
 	^ #insert.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:48:55'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:19:07'!
+changeToCharacter: evt
+	
+	morph pendingChangeTo: true! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:30:36'!
 changeToCharacter: aCharacter event: evt
 	"Change text from cursor to next occurrence of aCharacter in the current line and enter insert mode."
 	| index |
@@ -439,7 +421,8 @@ changeToCharacter: aCharacter event: evt
 		self selectFrom: self pointBlock stringIndex to: index - 1.
 		self cut.
 		morph vimMode: #insert.
-	].! !
+	].
+	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:37:44'!
 copyCursorLine: evt
@@ -624,7 +607,12 @@ deleteSelection: evt
 	self reset.
 ! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:52:34'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:19:17'!
+deleteToCharacter: evt
+	
+	morph pendingDeleteTo: true! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:31:13'!
 deleteToCharacter: aCharacter event: evt
 	"Delete the text from the cursor to next occurrence of aCharacter in the current line."
 	| index |
@@ -633,13 +621,19 @@ deleteToCharacter: aCharacter event: evt
 	index > 0 ifTrue: [
 		self selectFrom: self pointBlock stringIndex to: index - 1.
 		self cut.
-	].! !
+	].
+	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:55:15'!
 deselect
 	"Deselect the current selection, if any."
 	
 	markBlock := pointBlock.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:18:51'!
+findCharacter: evt
+	
+	morph pendingFind: true! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:56:02'!
 indexOfNext: aCharacter
@@ -714,7 +708,7 @@ moveRight: evt
 	self cursorRight: evt.
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:59:45'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:31:31'!
 moveToCharacter: aCharacter event: evt
 	"Move cursor to the next occurrence of aCharacter in the current line."
 	| index |
@@ -722,7 +716,8 @@ moveToCharacter: aCharacter event: evt
 	index := self indexOfNext: aCharacter.
 	index > 0 ifTrue: [
 		self moveCursor: [:position | index] forward: true event: evt
-	].! !
+	].
+	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:59:34'!
 moveUp: evt
@@ -781,6 +776,24 @@ pasteAtCursor: evt
 	endsWithNewline ifTrue: [] ifFalse: [self cursorRight: evt].
 
 	self paste.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:21:22'!
+replaceCharacter: evt
+	
+	morph pendingReplace: true! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:34:16'!
+replaceCharacter: aCharacter event: evt
+	"Insert aCharacter at cursor location."
+	| index |
+	
+	index := pointBlock stringIndex.
+	index logAs: 'index'.
+	aCharacter logAs: 'aCharacter'.
+	
+	self selectFrom: index to: index.
+	self replaceSelectionWith: aCharacter asString.
 	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:02:56'!
