@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 4:52:48 pm'!
+'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 7:11:39 pm'!
 'Description '!
-!provides: 'Vim' 1 107!
+!provides: 'Vim' 1 111!
 SystemOrganization addCategory: #Vim!
 
 
@@ -20,17 +20,13 @@ text
 	"I added this because it is needed by the Vim package."
 	^ text.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:52:44'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:53:53'!
 drawOn: aCanvas
 	"Draw the receiver on a canvas"
 	| lineWidth x |
 
 	false ifTrue: [ self debugDrawLineRectsOn: aCanvas ].  "show line rects for debugging"
 
-	lineWidth := 5.
-	x := extent x - lineWidth.
-	aCanvas line: x @ 0 to: x @ extent y width: lineWidth color: self modeColor.
-	
 	aCanvas
 		drawTextComposition: self textComposition
 		at: `0@0`
@@ -46,9 +42,15 @@ drawOn: aCanvas
 					drawString: msg
 					at: `0@0`
 					font: nil
-					color: Theme current textEmptyDisplayMessage ]].! !
+					color: Theme current textEmptyDisplayMessage ]].
+	
+	lineWidth := 5.
+	x := extent x - lineWidth.
+	aCanvas line: x @ 0 to: x @ extent y width: lineWidth color: self modeColor.
+	
+! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 07:23:20'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:32:35'!
 initialize
 	super initialize.
 	wrapFlag := true.
@@ -60,8 +62,7 @@ initialize
 
 	vimCommand := ''.
 	vimCount := nil.
-	vimMode := #insert.
-! !
+	vimMode := #insert.! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:47:00'!
 modeColor
@@ -208,9 +209,10 @@ reset
 vimCommand
 	^ vimCommand! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 06:46:56'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:34:07'!
 vimCommand: aString
-	vimCommand := aString! !
+	vimCommand := aString
+! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 19:19:54'!
 vimCount: aNumber
@@ -220,7 +222,7 @@ vimCount: aNumber
 vimMode
 	^ vimMode! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/29/2024 16:10:22'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:34:27'!
 vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
@@ -342,288 +344,22 @@ selectionStopIndex
 
 	^ selectionStopBlock stringIndex.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:09:50'!
-append: evt
-	self moveRight: evt.
-	^ #insert.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:11:11'!
-appendEndOfLine: evt
-	self cursorEnd: evt.
-	self reset.
-	^ #insert.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:16:07'!
-changeCursorToEndOfLine: evt
-	"Change line containing cursor."
-	
-	self deleteCursorToEndOfLine: evt.
-	self reset.
-	^ #insert.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:18:56'!
-changeCursorWord: evt
-	"Change word containing cursor."
-	
-	self deleteCursorWord: evt. "sends reset"
-	^ #insert.! !
-
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:26'!
 changeToCharacter: evt
 	
 	morph pendingChangeTo: true! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:59:26'!
-changeToCharacter: aCharacter event: evt
-	"Change text from cursor to next occurrence of aCharacter in the current line."
-	| index |
-	
-	index := self indexOfNext: aCharacter.
-	index > 0 ifTrue: [
-		self selectFrom: self pointBlock stringIndex to: index - 1.
-		self cut.
-		morph vimMode: #insert.
-	].! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:01:15'!
-copyCursorLine: evt
-	"Copy line containing cursor."
-	| index |
-
-	index := self pointBlock stringIndex.
-	
-	self selectLineWithEnding.
-	self copySelection.
-	self deselect.
-	
-	"Restore cursor position."
-	self moveCursor: [ :position | index ] forward: false event: evt.
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:18:02'!
-copySelection: evt
-	"Copy selection if any."
-	
-	self hasSelection ifTrue: [
-		| index |
-		index := self markBlock stringIndex.
-		index logAs: 'index'.
-		self copySelection.
-		self deselectAndPlaceCursorAt: index.
-		morph vimMode: #command.
-		self reset.
-	]
-! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:32:42'!
-cursorBeginningOfLine: evt
-	"Move cursor to beginning of line."
-
-	self moveCursor:  [ :position | self beginningOfLine: position ] forward: false event: evt.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:34:00'!
-cursorEndOfLine: evt
-	"Move cursor to end of line."
-
-	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:20:03'!
-cursorFirstLine: evt
-	"Move cursor to first line."
-
-	self defaultFont logAs: 'defaultFont'.
-	self moveCursor:  [ :position | 0 ] forward: false event: evt.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:33:16'!
-cursorFirstNonBlankOfLine: evt
-	"Move cursor to first non-blank character in line."
-	| character currentIndex index pointBlock space stopIndex tab text |
-
-	"editor pointBlock returns a CharacterBlock object."
-	pointBlock := self pointBlock.
-	index := pointBlock textLine first.
-	stopIndex := pointBlock textLine last.
-
-	text := self text.
-	space := Character space.
-	tab := Character tab.
-	[
-		character := text at: index.
-		(character = space or: [ character = tab]) and: [ index < stopIndex ]
-	] whileTrue: [ index := index + 1 ].
-	
-	currentIndex := pointBlock stringIndex.
-	self moveCursor:  [ :position | index ] forward: (index > currentIndex) event: evt.
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:19:37'!
-cursorLastLine: evt
-	"Move cursor to last line."
-	| size |
-	size := morph model actualContents size.
-	size logAs: 'size'.
-	self moveCursor:  [ :position | size ] forward: false event: evt.
-	self cursorBeginningOfLine: evt.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:25:43'!
-cursorNextWord: evt
-	"Move cursor to beginning of next word."
-	| atLastWordInLine pointBlock |
-
-	self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
-	
-	pointBlock := self pointBlock.
-	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
-	atLastWordInLine ifTrue: [
-		"Do it again to move to the first word on the next line."
-		self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
-	].
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:28:06'!
-cursorPreviousWord: evt
-	"Move cursor to beginning of previous word."
-	| atLastWordInLine pointBlock |
-
-	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt.
-	
-	pointBlock := self pointBlock.
-	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
-	atLastWordInLine ifTrue: [
-		"Do it again to move to the last word on the previous line."
-		self moveCursor:  [ :position | self previousWordStart: position] forward: false event: evt.
-	].	
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:16:55'!
-deleteCursorLine: evt
-	"Delete line containing cursor."
-	| first last textLine |
-
-	"editor pointBlock returns a CharacterBlock object."
-	textLine := self pointBlock textLine.
-	first := textLine first.
-	last := textLine last.
-	self selectFrom: first to: last.
-	self cut.
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:51:13'!
-deleteCursorToEndOfLine: evt
-	"Delete from cursor to end of line."
-	| index last pointBlock |
-
-	"editor pointBlock returns a CharacterBlock object."
-	pointBlock := self pointBlock.
-	index := pointBlock stringIndex.
-	last := pointBlock textLine last.
-	(self text at: last) isLineSeparator ifTrue: [ last := last - 1 ].
-	self selectFrom: index to: last.
-	self cut.
-	^ #insert.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:18:21'!
-deleteCursorWord: evt
-	"Delete word containing cursor."
-	| allText atEndOfLine range startIndex stopIndex |
-
-	"editor pointBlock returns a CharacterBlock object."
-	startIndex := self pointBlock stringIndex.
-	range := self wordRangeIncluding: startIndex.
-	stopIndex := range last.
-	allText := self text.
-	atEndOfLine := stopIndex = allText size or: [ allText at: stopIndex + 1 :: isLineSeparator].
-	atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
-	self selectFrom: startIndex to: stopIndex.
-	self cut.
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:48:17'!
-deleteSelection: evt
-	"Delete selected text or character at cursor."	
-	| markBlock pointBlock startIndex stopIndex |
-
-	markBlock := self markBlock.
-	startIndex := markBlock stringIndex.
-	pointBlock := self pointBlock.
-	stopIndex := pointBlock stringIndex - 1.
-	startIndex > stopIndex ifTrue: [ self selectFrom: startIndex to: startIndex ].
-	self cut.
-	self reset.
-! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:13'!
 deleteToCharacter: evt
 	
 	morph pendingDeleteTo: true! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:53:30'!
-deleteToCharacter: aCharacter event: evt
-	"Delete text from cursor to next occurrence of aCharacter in the current line."
-	| index |
-	
-	index := self indexOfNext: aCharacter.
-	index > 0 ifTrue: [
-		self selectFrom: self pointBlock stringIndex to: index - 1.
-		self cut.
-	].! !
-
 !Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:09:43'!
 findCharacter: evt
 	
 	morph pendingFind: true! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:48:17'!
-indexOfNext: aCharacter
-	"Answer indes of next occurrence of aCharacter in the current line."
-	| offset pointBlock startIndex stopIndex substring |
-	
-	"Get the characters from the cursor position to the end of the current line."
-	pointBlock := self pointBlock.
-	startIndex := pointBlock stringIndex + 1.
-	stopIndex := pointBlock textLine last.
-	substring := pointBlock text string copyFrom: startIndex to: stopIndex.
-
-	offset := substring findString: aCharacter asString.
-	offset > 0 ifTrue: [^ startIndex + offset - 1] ifFalse: [^ 0].
-	! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:22:01'!
-insertAtBeginningOfLine: evt
-	"Move cursor to beginning of line and enter insert mode."
-
-	self cursorHome: evt.
-	self reset.
-	^ #insert.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:23:04'!
-insertAtCursor: evt
-	"Enter insert mode."
-
-	self reset.
-	^ #insert.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:12:28'!
-joinLines: evt
-	"Join next line to the current line."
-	| index |
-	
-	index := self pointBlock textLine last.
-	self selectFrom: index to: index.
-	self replaceSelectionWith: ' '.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 11:11:47'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:09:11'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one."
@@ -637,98 +373,10 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	newPosition := directionBlock value: (indices at: #moving).
 
 	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
+	
 	selecting and: [ vimMode ~= #command ] ::
 		ifTrue: [ self selectMark: (indices at: #fixed) point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:37:18'!
-moveDown: evt
-
-	self cursorDown: evt.
-	self morph vimMode = #visualLine ifTrue: [ self selectLineWithEnding ].	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:06:19'!
-moveLeft: evt
-	self cursorLeft: evt.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:00:18'!
-moveRight: evt
-	self cursorRight: evt.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:47:25'!
-moveToCharacter: aCharacter event: evt
-	"Move cursor to next occurrence of aCharacter in the current line."
-	| index |
-	
-	index := self indexOfNext: aCharacter.
-	index > 0 ifTrue: [
-		self moveCursor: [:position | index] forward: true event: evt
-	].! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 08:55:06'!
-moveUp: evt
-	
-	"stopIndex := self markBlock textLine last.
-	stopIndex logAs: 'stopIndex'."
-	self cursorUp: evt.
-	"self morph vimMode = #visualLine ifTrue: [ self selectLine ]."	
-	"savedIndex := self pointBlock textLine first."
-	
-	"TODO: Why does this only work the first time?"
-	"self morph vimMode = #visualLine ifTrue: [
-		startIndex := self pointBlock textLine first.
-		startIndex logAs: 'startIndex'.
-		self selectFrom: startIndex to: stopIndex.
-		self moveCursor: [ :position | savedIndex ] forward: false event: evt.
-	]."
-	
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:39:56'!
-noop: evt
-	"Continue gathering command characters."! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:24:37'!
-openLineAbove: evt
-	"Open a new line above the line containing cursor."
-	
-	self cursorUp: evt.
-	self cursorEnd: evt.
-	self replaceSelectionWith: (Character newLineCharacter asString).
-	self reset.
-	^ #insert.
-! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:24:13'!
-openLineBelow: evt
-	"Open a new line below the line containing cursor."
-	
-	self cursorEnd: evt.
-	self replaceSelectionWith: (Character newLineCharacter asString).
-	self reset.
-	^ #insert.
-! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:59:57'!
-pasteAtCursor: evt
-	"Paste clipboard contents at cursor location."
-	| endsWithNewline text |
-	
-	text := self clipboardStringOrText.
-	endsWithNewline := text isEmpty not and: [text last isLineSeparator].
-
-	"When the selection ends in a newline character, assume we are pasting whole lines." 	
-	endsWithNewline ifTrue: [] ifFalse: [self cursorRight: evt].
-
-	self paste.
-	self reset.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:19:47'!
-reset
-	self morph reset! !
 
 !Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:44:06'!
 setIndices: selecting forward: forward
@@ -751,7 +399,409 @@ setIndices: selecting forward: forward
 		].
 	^indices! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:34:29'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:47:19'!
+append: evt
+	"Move right one character and enter insert mode."
+	
+	self moveRight: evt.
+	^ #insert.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:47:36'!
+appendEndOfLine: evt
+	"Move to end of current line and enter insert mode."
+	
+	self cursorEnd: evt.
+	self reset.
+	^ #insert.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:48:05'!
+changeCursorToEndOfLine: evt
+	"Delete from cursor to end of line and enter insert mode."
+		
+	self deleteCursorToEndOfLine: evt.
+	self reset.
+	^ #insert.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:48:36'!
+changeCursorWord: evt
+	"Delete from cursor to end of word under cursor and enter insert mode."
+		
+	self deleteCursorWord: evt. "sends reset"
+	^ #insert.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:48:55'!
+changeToCharacter: aCharacter event: evt
+	"Change text from cursor to next occurrence of aCharacter in the current line and enter insert mode."
+	| index |
+	
+	index := self indexOfNext: aCharacter.
+	index > 0 ifTrue: [
+		self selectFrom: self pointBlock stringIndex to: index - 1.
+		self cut.
+		morph vimMode: #insert.
+	].! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:37:44'!
+copyCursorLine: evt
+	"Copy line containing cursor."
+	| index |
+
+	index := self pointBlock stringIndex.
+	
+	self selectLineWithEnding.
+	self copySelection.
+	self deselect.
+	
+	"Restore cursor position."
+	self moveCursor: [ :position | index ] forward: false event: evt.
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:58:36'!
+copySelection: evt
+	"Copy selection, if any."
+	
+	self hasSelection ifTrue: [
+		| index |
+		index := markBlock stringIndex.
+		self copySelection.
+		self deselectAndPlaceCursorAt: index.
+		morph vimMode: #command.
+		self reset.
+	]
+! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:38:05'!
+cursorBeginningOfLine: evt
+	"Move cursor to beginning of line."
+
+	self moveCursor:  [ :position | self beginningOfLine: position ] forward: false event: evt.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:38:13'!
+cursorEndOfLine: evt
+	"Move cursor to end of line."
+
+	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:49:43'!
+cursorFirstLine: evt
+	"Move cursor to the beginning of the first line."
+	
+	self defaultFont logAs: 'defaultFont'.
+	self moveCursor:  [ :position | 0 ] forward: false event: evt.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:01'!
+cursorFirstNonBlankOfLine: evt
+	"Move cursor to the first non-blank character in the current line."
+	| character currentIndex index space stopIndex tab text |
+	
+	"editor pointBlock returns a CharacterBlock object."
+	index := pointBlock textLine first.
+	stopIndex := pointBlock textLine last.
+
+	text := self text.
+	space := Character space.
+	tab := Character tab.
+	[
+		character := text at: index.
+		(character = space or: [ character = tab]) and: [ index < stopIndex ]
+	] whileTrue: [ index := index + 1 ].
+	
+	currentIndex := pointBlock stringIndex.
+	self moveCursor:  [ :position | index ] forward: (index > currentIndex) event: evt.
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:49:36'!
+cursorLastLine: evt
+	"Move cursor to the beginning of the last line."
+	| size |
+	
+	size := morph model actualContents size.
+	size logAs: 'size'.
+	self moveCursor:  [ :position | size ] forward: false event: evt.
+	self cursorBeginningOfLine: evt.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:19'!
+cursorNextWord: evt
+	"Move cursor to beginning of the next word."
+	| atLastWordInLine |
+	
+	self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
+	
+	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
+	atLastWordInLine ifTrue: [
+		"Do it again to move to the first word on the next line."
+		self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
+	].
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:30'!
+cursorPreviousWord: evt
+	"Move cursor to the beginning of the previous word."
+	| atLastWordInLine |
+	
+	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt.
+	
+	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
+	atLastWordInLine ifTrue: [
+		"Do it again to move to the last word on the previous line."
+		self moveCursor:  [ :position | self previousWordStart: position] forward: false event: evt.
+	].	
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 07:32:16'!
+cut
+	"Cut out the current selection and redisplay if necessary."
+	"This is a user command, and generates undo"
+	| selection |
+	
+	"TODO: I commented out this line because it breaks the
+	ability to delete an empty line using the Vim dd command.
+	self lineSelectAndEmptyCheck: [^ self]."
+	
+	selection := self selection.
+	self replaceSelectionWith: self nullText.
+	self clipboardTextPut: selection.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:56'!
+deleteCursorLine: evt
+	"Delete the line containing the cursor."
+	| first last textLine |
+	
+	"editor pointBlock returns a CharacterBlock object."
+	textLine := self pointBlock textLine.
+	first := textLine first.
+	last := textLine last.
+	self selectFrom: first to: last.
+	self cut.
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:51:32'!
+deleteCursorToEndOfLine: evt
+	"Delete from the cursor to the end of the current line."
+	| index last |
+	
+	index := pointBlock stringIndex.
+	last := pointBlock textLine last.
+	(self text at: last) isLineSeparator ifTrue: [ last := last - 1 ].
+	self selectFrom: index to: last.
+	self cut.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:52:03'!
+deleteCursorWord: evt
+	"Delete the word containing cursor."
+	| allText atEndOfLine range startIndex stopIndex |
+	
+	"editor pointBlock returns a CharacterBlock object."
+	startIndex := self pointBlock stringIndex.
+	range := self wordRangeIncluding: startIndex.
+	stopIndex := range last.
+	allText := self text.
+	atEndOfLine := stopIndex = allText size or: [ allText at: stopIndex + 1 :: isLineSeparator].
+	atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
+	self selectFrom: startIndex to: stopIndex.
+	self cut.
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:52:17'!
+deleteSelection: evt
+	"Delete the selected text or character at the cursor."	
+	| startIndex stopIndex |
+	
+	startIndex := markBlock stringIndex.
+	stopIndex := pointBlock stringIndex - 1.
+	startIndex > stopIndex ifTrue: [ self selectFrom: startIndex to: startIndex ].
+	self cut.
+	self reset.
+! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:52:34'!
+deleteToCharacter: aCharacter event: evt
+	"Delete the text from the cursor to next occurrence of aCharacter in the current line."
+	| index |
+	
+	index := self indexOfNext: aCharacter.
+	index > 0 ifTrue: [
+		self selectFrom: self pointBlock stringIndex to: index - 1.
+		self cut.
+	].! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:55:15'!
+deselect
+	"Deselect the current selection, if any."
+	
+	markBlock := pointBlock.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:56:02'!
+indexOfNext: aCharacter
+	"Answer the index of next occurrence of aCharacter in the current line."
+	| offset startIndex stopIndex substring |
+	
+	"Get the characters from the cursor position to the end of the current line."
+	startIndex := pointBlock stringIndex + 1.
+	stopIndex := pointBlock textLine last.
+	substring := pointBlock text string copyFrom: startIndex to: stopIndex.
+
+	offset := substring findString: aCharacter asString.
+	offset > 0 ifTrue: [^ startIndex + offset - 1] ifFalse: [^ 0].
+	! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:32:35'!
+initialize
+	emphasisHere := #().
+	initialSelectionStart := nil.
+	initialSelectionStop := nil.
+	doWordSelection := false.
+	doParagraphSelection := false.
+	defaultFont := nil.
+	
+	"TODO: Why does this affect Text Editor and Workspace windows, but not Browser code panes?"
+	"defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14."! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:57:05'!
+insertAtBeginningOfLine: evt
+	"Move cursor to the beginning of the line and enter insert mode."
+
+	self cursorHome: evt.
+	self reset.
+	^ #insert.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:57:16'!
+insertAtCursor: evt
+	"Enter insert mode."
+	
+	self reset.
+	^ #insert.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:57:36'!
+joinLines: evt
+	"Join the next line to the current line with a space between them."
+	| index |
+	
+	index := self pointBlock textLine last.
+	self selectFrom: index to: index.
+	self replaceSelectionWith: ' '.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:00:36'!
+moveDown: evt
+	"Move the cursor down one line in the same column."
+	
+	self cursorDown: evt.
+	self morph vimMode = #visualLine ifTrue: [ self selectLineWithEnding ].	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:00:13'!
+moveLeft: evt
+	"Move the cursor left one character."
+	
+	self cursorLeft: evt.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:00:00'!
+moveRight: evt
+	"Move the cursor right one character."
+	
+	self cursorRight: evt.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:59:45'!
+moveToCharacter: aCharacter event: evt
+	"Move cursor to the next occurrence of aCharacter in the current line."
+	| index |
+	
+	index := self indexOfNext: aCharacter.
+	index > 0 ifTrue: [
+		self moveCursor: [:position | index] forward: true event: evt
+	].! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:59:34'!
+moveUp: evt
+	"Move the cursor up one line in the same column."
+	
+	"stopIndex := self markBlock textLine last.
+	stopIndex logAs: 'stopIndex'."
+	self cursorUp: evt.
+	"self morph vimMode = #visualLine ifTrue: [ self selectLine ]."	
+	"savedIndex := self pointBlock textLine first."
+	
+	"TODO: Why does this only work the first time?"
+	"self morph vimMode = #visualLine ifTrue: [
+		startIndex := self pointBlock textLine first.
+		startIndex logAs: 'startIndex'.
+		self selectFrom: startIndex to: stopIndex.
+		self moveCursor: [ :position | savedIndex ] forward: false event: evt.
+	]."
+	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:45:02'!
+noop: evt
+	"Continue gathering command characters."! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:00:53'!
+openLineAbove: evt
+	"Open a new line above the line containing the cursor."
+	
+	self cursorUp: evt.
+	self cursorEnd: evt.
+	self replaceSelectionWith: (Character newLineCharacter asString).
+	self reset.
+	^ #insert.
+! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:01:01'!
+openLineBelow: evt
+	"Open a new line below the line containing the cursor."
+	
+	self cursorEnd: evt.
+	self replaceSelectionWith: (Character newLineCharacter asString).
+	self reset.
+	^ #insert.
+! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:01:22'!
+pasteAtCursor: evt
+	"Paste the clipboard contents at the cursor location."
+	| endsWithNewline text |
+	
+	text := self clipboardStringOrText.
+	endsWithNewline := text isEmpty not and: [text last isLineSeparator].
+
+	"When the selection ends in a newline character, assume we are pasting whole lines." 	
+	endsWithNewline ifTrue: [] ifFalse: [self cursorRight: evt].
+
+	self paste.
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:02:56'!
+reset
+	"Reset instance variables related to Vim mode in the associated InnerTextMorph instance."
+	
+	morph reset! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:03:19'!
+selectLineWithEnding
+	"Make the receiver's selection, encompass the current line including the line ending character."
+	| interval |
+	
+	interval := model actualContents encompassLine: self selectionInterval.
+	
+	"Add one to end of interval to include line ending character."
+	interval setFrom: interval first to: interval last + 1 count: interval size + 1.
+	
+	self selectInterval: interval! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:46:00'!
 toggleCase: evt
 	"Toggle the case of the character under the cursor."
 	| char index |
@@ -769,80 +819,32 @@ toggleCase: evt
 	self reset.
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 06:29:32'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:05:14'!
 undoLastAction: evt
+	"Undo the last change."
+	
 	self undo.
 	self reset.! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:52:13'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:05:40'!
 visualLineMode: evt
-	"Switch to visual line mode for selecting text."
-
+	"Switch to visual line mode for selecting text by entire lines."
+	
 	"Select the current line."
 	self selectLineWithEnding.
-
+	
 	self reset.
 	^ #visualLine
 ! !
 
-!Editor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:18:48'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:09:18'!
 visualMode: evt
-	"Switch to visual mode for selecting text."
+	"Switch to visual mode for selecting text by characters."
 	| index |
 	
 	"Select charater at cursor."
 	index := self pointBlock stringIndex.
 	self selectFrom: index to: index.
-
+	
 	self reset.
-	^ #visual
-! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 07:32:16'!
-cut
-	"Cut out the current selection and redisplay if necessary."
-	"This is a user command, and generates undo"
-	| selection |
-	
-	"TODO: I commented out this line because it breaks the
-	ability to delete an empty line using the Vim dd command.
-	self lineSelectAndEmptyCheck: [^ self]."
-	
-	selection := self selection.
-	self replaceSelectionWith: self nullText.
-	self clipboardTextPut: selection.! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/28/2024 08:21:15'!
-deselect
-	markBlock := pointBlock.! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:32:35'!
-initialize
-	emphasisHere := #().
-	initialSelectionStart := nil.
-	initialSelectionStop := nil.
-	doWordSelection := false.
-	doParagraphSelection := false.
-	defaultFont := nil.
-	
-	"TODO: Why does this affect Text Editor and Workspace windows, but not Browser code panes?"
-	"defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14."! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 08:55:09'!
-markBlock
-	^markBlock! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 09:50:49'!
-selectLineWithEnding
-	"Make the receiver's selection, encompass the current line including the line ending character."
-	| interval |
-	
-	interval := model actualContents encompassLine: self selectionInterval.
-	"Add one to end of interval to include line ending character."
-	interval setFrom: interval first to: interval last + 1 count: interval size + 1.
-	self selectInterval: interval! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:32:47'!
-textComposition
-
-	^ textComposition! !
+	^ #visual! !
