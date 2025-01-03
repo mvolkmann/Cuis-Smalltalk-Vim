@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 7:08:00 pm'!
+'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 7:16:24 pm'!
 'Description '!
-!provides: 'Vim' 1 120!
+!provides: 'Vim' 1 121!
 SystemOrganization addCategory: #Vim!
 
 
@@ -833,7 +833,7 @@ openLineBelow: evt
 	^ #insert.
 ! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:01:22'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:16:22'!
 pasteAtCursor: evt
 	"Paste the clipboard contents at the cursor location."
 	| endsWithNewline text |
@@ -842,9 +842,18 @@ pasteAtCursor: evt
 	endsWithNewline := text isEmpty not and: [text last isLineSeparator].
 
 	"When the selection ends in a newline character, assume we are pasting whole lines." 	
-	endsWithNewline ifTrue: [] ifFalse: [self cursorRight: evt].
+	endsWithNewline
+		ifTrue: [
+			self moveDown: evt.
+			self cursorBeginningOfLine: evt.
+			self paste.
+			self moveUp: evt.
+		]
+		ifFalse: [
+			self cursorRight: evt.
+			self paste.
+		].
 
-	self paste.
 	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:21:22'!
