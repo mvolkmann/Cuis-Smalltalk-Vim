@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 6:57:03 pm'!
+'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 7:08:00 pm'!
 'Description '!
-!provides: 'Vim' 1 119!
+!provides: 'Vim' 1 120!
 SystemOrganization addCategory: #Vim!
 
 
@@ -271,7 +271,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:17:26'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:58:36'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -369,6 +369,9 @@ initialize
 
 		#y -> #copySelection:.
 		
+		"Yank (copy) current word."
+		#yw -> #copyCursorWord:.
+	
 		"Yank (copy) current line."
 		#yy -> #copyCursorLine:.
 	
@@ -459,7 +462,7 @@ changeToCharacter: aCharacter event: evt
 	].
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:37:44'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:04:53'!
 copyCursorLine: evt
 	"Copy line containing cursor."
 	| index |
@@ -471,8 +474,21 @@ copyCursorLine: evt
 	self deselect.
 	
 	"Restore cursor position."
-	self moveCursor: [ :position | index ] forward: false event: evt.
+	self moveCursor: [:position | index] forward: false event: evt.
 	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:04:34'!
+copyCursorWord: evt
+	"Copy remainder of word containing cursor."
+	| range startIndex stopIndex |
+	
+	startIndex := self pointBlock stringIndex.
+	range := self wordRangeIncluding: startIndex.
+	stopIndex := range last.
+	self selectFrom: startIndex to: stopIndex.
+	self copySelection.
+	self moveCursor: [:position | startIndex] forward: false event: evt.
 	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:58:36'!
@@ -489,29 +505,29 @@ copySelection: evt
 	]
 ! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:38:05'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:06:31'!
 cursorBeginningOfLine: evt
 	"Move cursor to beginning of line."
 
-	self moveCursor:  [ :position | self beginningOfLine: position ] forward: false event: evt.
+	self moveCursor: [:position | self beginningOfLine: position] forward: false event: evt.
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:38:13'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:06:36'!
 cursorEndOfLine: evt
 	"Move cursor to end of line."
 
-	self moveCursor:  [ :position | self endOfLine: position ] forward: true event: evt.
+	self moveCursor: [:position | self endOfLine: position] forward: true event: evt.
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:49:43'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:06:40'!
 cursorFirstLine: evt
 	"Move cursor to the beginning of the first line."
 	
 	self defaultFont logAs: 'defaultFont'.
-	self moveCursor:  [ :position | 0 ] forward: false event: evt.
+	self moveCursor: [:position | 0] forward: false event: evt.
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:01'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:06:45'!
 cursorFirstNonBlankOfLine: evt
 	"Move cursor to the first non-blank character in the current line."
 	| character currentIndex index space stopIndex tab text |
@@ -529,11 +545,11 @@ cursorFirstNonBlankOfLine: evt
 	] whileTrue: [ index := index + 1 ].
 	
 	currentIndex := pointBlock stringIndex.
-	self moveCursor:  [ :position | index ] forward: (index > currentIndex) event: evt.
+	self moveCursor: [:position | index] forward: (index > currentIndex) event: evt.
 	
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:56:02'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:07:06'!
 cursorLastLine: evt
 	"Move cursor to the beginning of the last line."
 	| lineNumber size |
@@ -544,7 +560,7 @@ cursorLastLine: evt
 	lineNumber
 		ifNil: [
 			size := morph model actualContents size.
-			self moveCursor:  [ :position | size ] forward: false event: evt.
+			self moveCursor: [:position | size] forward: false event: evt.
 			self cursorBeginningOfLine: evt.
 		]
 		ifNotNil: [
@@ -555,39 +571,39 @@ cursorLastLine: evt
 			lineSize := line last - line first.
 			column := pointBlock stringIndex - pointBlock textLine first.
 			index := line first + (column min: lineSize).
-			self moveCursor:  [:position | index] forward: true event: evt.
+			self moveCursor: [:position | index] forward: true event: evt.
 		].
 	
 	self reset.
 	
 ! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:19'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:06:54'!
 cursorNextWord: evt
 	"Move cursor to beginning of the next word."
 	| atLastWordInLine |
 	
-	self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
+	self moveCursor: [:position | self nextWordStart: position] forward: true event: evt.
 	
 	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
 	atLastWordInLine ifTrue: [
 		"Do it again to move to the first word on the next line."
-		self moveCursor:  [ :position | self nextWordStart: position] forward: true event: evt.
+		self moveCursor: [:position | self nextWordStart: position] forward: true event: evt.
 	].
 	
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:30'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:07:31'!
 cursorPreviousWord: evt
 	"Move cursor to the beginning of the previous word."
 	| atLastWordInLine |
 	
-	self moveCursor:  [ :position | self previousWordStart: position ] forward: false event: evt.
+	self moveCursor: [:position | self previousWordStart: position] forward: false event: evt.
 	
 	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
 	atLastWordInLine ifTrue: [
 		"Do it again to move to the last word on the previous line."
-		self moveCursor:  [ :position | self previousWordStart: position] forward: false event: evt.
+		self moveCursor: [:position | self previousWordStart: position] forward: false event: evt.
 	].	
 	
 	self reset.! !
@@ -772,7 +788,7 @@ moveToCharacter: aCharacter event: evt
 	].
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:59:34'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:07:38'!
 moveUp: evt
 	"Move the cursor up one line in the same column."
 	
@@ -787,7 +803,7 @@ moveUp: evt
 		startIndex := self pointBlock textLine first.
 		startIndex logAs: 'startIndex'.
 		self selectFrom: startIndex to: stopIndex.
-		self moveCursor: [ :position | savedIndex ] forward: false event: evt.
+		self moveCursor: [:position | savedIndex] forward: false event: evt.
 	]."
 	
 	self reset.! !
