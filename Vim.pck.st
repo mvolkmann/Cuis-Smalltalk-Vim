@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 1 January 2025 at 8:19:18 pm'!
+'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 6:57:03 pm'!
 'Description '!
-!provides: 'Vim' 1 116!
+!provides: 'Vim' 1 119!
 SystemOrganization addCategory: #Vim!
 
 
@@ -167,7 +167,7 @@ processKeystrokeEvent: evt
 
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:33:39'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:42:28'!
 processVimKeystrokeEvent: evt
 	"Handle Vim keystrokes (called by processKeystrokeEvent:)"
 	| char key message newMode value |
@@ -215,8 +215,14 @@ processVimKeystrokeEvent: evt
 					vimCommand := ''.
 				]
 				ifNotNil: [
-					vimCount ifNil: [ vimCount := 1 ].
-					vimCount timesRepeat: [ newMode := editor perform: message with: evt ].
+					vimCount = nil or: [char = $G] ::
+						ifTrue: [
+							newMode := editor perform: message with: evt
+						]
+						ifFalse: [
+							vimCount timesRepeat: [ newMode := editor perform: message with: evt ].
+						].
+					
 					newMode isSymbol ifTrue: [
 						self vimMode:​ newMode.
 						'Vim mode is {1}.' format: { vimMode} :: print.
@@ -233,25 +239,35 @@ reset
 	vimCount := nil.
 	vimCommand := ''.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/28/2024 06:46:30'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:30:30'!
 vimCommand
+	
 	^ vimCommand! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:34:07'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:30:34'!
 vimCommand: aString
+	
 	vimCommand := aString
 ! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 19:19:54'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:30:25'!
+vimCount
+	
+	^ vimCount! !
+
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:30:41'!
 vimCount: aNumber
+	
 	vimCount := aNumber! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 12/27/2024 18:30:14'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:30:45'!
 vimMode
+	
 	^ vimMode! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:34:27'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:30:52'!
 vimMode: aSymbol
+	
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
@@ -517,16 +533,34 @@ cursorFirstNonBlankOfLine: evt
 	
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:49:36'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:56:02'!
 cursorLastLine: evt
 	"Move cursor to the beginning of the last line."
-	| size |
+	| lineNumber size |
 	
-	size := morph model actualContents size.
-	size logAs: 'size'.
-	self moveCursor:  [ :position | size ] forward: false event: evt.
-	self cursorBeginningOfLine: evt.
-	self reset.! !
+	"If there is a count, go to that line."
+	lineNumber := morph vimCount.
+	lineNumber logAs: 'lineNumber'.
+	lineNumber
+		ifNil: [
+			size := morph model actualContents size.
+			self moveCursor:  [ :position | size ] forward: false event: evt.
+			self cursorBeginningOfLine: evt.
+		]
+		ifNotNil: [
+			| column index line lines lineSize |
+
+			lines := textComposition lines.
+			line := lines at: (lineNumber min: lines size).
+			lineSize := line last - line first.
+			column := pointBlock stringIndex - pointBlock textLine first.
+			index := line first + (column min: lineSize).
+			self moveCursor:  [:position | index] forward: true event: evt.
+		].
+	
+	self reset.
+	
+! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:19'!
 cursorNextWord: evt
@@ -586,7 +620,7 @@ deleteCursorLine: evt
 	
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:51:32'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 16:52:31'!
 deleteCursorToEndOfLine: evt
 	"Delete from the cursor to the end of the current line."
 	| index last |
