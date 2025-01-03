@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 6:49:25 am'!
+'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 8:25:34 am'!
 'Description '!
-!provides: 'Vim' 1 127!
+!provides: 'Vim' 1 128!
 SystemOrganization addCategory: #Vim!
 
 
@@ -39,7 +39,7 @@ text
 	"I added this because it is needed by the Vim package."
 	^ text.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:53:53'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/3/2025 08:21:15'!
 drawOn: aCanvas
 	"Draw the receiver on a canvas"
 	| lineWidth x |
@@ -83,7 +83,7 @@ initialize
 	vimCount := nil.
 	vimMode := #insert.! !
 
-!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 16:47:00'!
+!InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/3/2025 08:23:00'!
 modeColor
 
 	^ vimMode caseOf: {
@@ -91,8 +91,7 @@ modeColor
 		[#insert] -> [Color transparent].
 		[#visual] -> [Color blue].
 		[#visualLine] -> [Color purple]
-	} otherwise: [Color gray]
-		! !
+	} otherwise: [Color gray]! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:22:07'!
 pendingChangeTo: aBoolean
@@ -396,6 +395,55 @@ initialize
 		#~ -> #toggleCase:.
 	}.
 ! !
+
+!TextComposition methodsFor: '*Vim' stamp: 'RMV 1/3/2025 08:22:32'!
+displayTextCursorAtX: x top: top bottom: bottom emphasis: emphasis on: aCanvas textLeft: textLeft
+	"x, top, bottom, textLeft are relative to the morph currently being drawn."
+	| textCursorColor x1 isBold isItalic x0 h w halfW r d extraW corner origin |
+	
+	isBold := emphasis allMask: 1.
+	isItalic := emphasis allMask: 2.
+	
+	"textCursorColor := Theme current textCursor."
+	textCursorColor := editor morph modeColor.
+	textCursorColor = Color transparent ifTrue: [textCursorColor := Color black].
+	
+	h := bottom - top.
+	w := isBold
+		ifTrue: [ h // 25 + 2 ]
+		ifFalse: [ h // 30 + 1 ].
+	halfW := w // 2.
+	isItalic
+		ifTrue: [	
+			"Keep tweaking if needed!! For italics with descenders (i.e. p), cursor shows a bit to the left..."
+			d := isBold ifTrue: [ h // 8 ] ifFalse: [ h // 9].
+			x0 := x- (h*5//24) + d.
+			x1 := x + d ]
+		ifFalse: [
+			x0 := x - halfW.
+			x1 := x - halfW].
+	x0-textLeft < -1 ifTrue: [
+		x1 := x1 - x0 + textLeft.
+		x0 := textLeft ].
+	r := extentForComposing x-halfW-1.
+	r < (x1-textLeft) ifTrue: [
+		x0 := x0 + r - x1+textLeft.
+		x1 := r +textLeft].
+	extraW := isBold
+		ifTrue: [ 3 ]
+		ifFalse: [ 2 ].
+	origin := x0-halfW@ top.
+	corner := x1+halfW+extraW @ (bottom+2).
+	lastTextCursorRect
+		ifNil: [ lastTextCursorRect := origin corner: corner ]
+		ifNotNil: [lastTextCursorRect
+			setOrigin: (lastTextCursorRect origin min: origin)
+			corner: (lastTextCursorRect corner max: corner)].
+
+	aCanvas
+		line: x0+halfW@(bottom-w-w+halfW) to: x1+halfW@top
+		width: w + 1
+		color: textCursorColor! !
 
 !TextComposition methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:36:12'!
 selectionStopIndex
