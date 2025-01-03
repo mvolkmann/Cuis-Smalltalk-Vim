@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 7:27:41 pm'!
+'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 8:05:47 pm'!
 'Description '!
-!provides: 'Vim' 1 122!
+!provides: 'Vim' 1 123!
 SystemOrganization addCategory: #Vim!
 
 
@@ -271,7 +271,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:26:16'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:52:10'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -297,15 +297,23 @@ initialize
 		'c$' asSymbol -> #changeCursorToEndOfLine:.
 
 		#d -> #noop:.
+		#da -> #noop:.
+		#di -> #noop:.
 
+		"Delete a word under cursor."
+		#daw -> #deleteAWord:.
+		
 		"Delete line under cursor."
 		#dd -> #deleteCursorLine:.
+		
+		"Delete inner word under cursor."
+		#diw -> #deleteInnerWord:.
 		
 		"Delete to a given character."
 		#dt -> #deleteToCharacter:.
 	
 		"Delete word under cursor."
-		#dw -> #deleteCursorWord:.
+		#dw -> #deleteEndOfWord:.
 
 		"Delete word under cursor."
 		'd$' asSymbol -> #deleteCursorToEndOfLine:.
@@ -437,11 +445,11 @@ changeCursorToEndOfLine: evt
 	self reset.
 	^ #insert.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:48:36'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:45:29'!
 changeCursorWord: evt
 	"Delete from cursor to end of word under cursor and enter insert mode."
 		
-	self deleteCursorWord: evt. "sends reset"
+	self deleteEndOfWord: evt. "sends reset"
 	^ #insert.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:19:07'!
@@ -622,6 +630,27 @@ cut
 	self replaceSelectionWith: self nullText.
 	self clipboardTextPut: selection.! !
 
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 20:05:13'!
+deleteAWord: evt
+	"Delete the word containing the cursor."
+	| range startIndex stopIndex text |
+	
+	range := self wordRangeIncluding: pointBlock stringIndex.
+	startIndex := range first.
+	stopIndex := range last.
+	
+	text := pointBlock text.
+	startIndex > 1 and: [(text at: startIndex - 1) = Character space] ::
+		ifTrue: [ startIndex := startIndex - 1]
+		ifFalse: [
+			stopIndex < text size and: [(text at: stopIndex + 1) = Character space] ::
+				ifTrue: [ stopIndex := stopIndex + 1 ]
+		].
+	
+	self selectFrom: startIndex to: stopIndex.
+	self cut.
+	self reset.! !
+
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:50:56'!
 deleteCursorLine: evt
 	"Delete the line containing the cursor."
@@ -647,9 +676,9 @@ deleteCursorToEndOfLine: evt
 	self selectFrom: index to: last.
 	self cut.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:52:03'!
-deleteCursorWord: evt
-	"Delete the word containing cursor."
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:46:39'!
+deleteEndOfWord: evt
+	"Delete the end of the word containing the cursor."
 	| allText atEndOfLine range startIndex stopIndex |
 	
 	"editor pointBlock returns a CharacterBlock object."
@@ -662,6 +691,18 @@ deleteCursorWord: evt
 	self selectFrom: startIndex to: stopIndex.
 	self cut.
 	
+	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 20:02:11'!
+deleteInnerWord: evt
+	"Delete the word containing the cursor."
+	| range startIndex stopIndex |
+	
+	range := self wordRangeIncluding: pointBlock stringIndex.
+	startIndex := range first.
+	stopIndex := range last.
+	self selectFrom: startIndex to: stopIndex.
+	self cut.
 	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:52:17'!
