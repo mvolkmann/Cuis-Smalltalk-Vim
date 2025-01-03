@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 8:05:47 pm'!
+'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 6:12:24 am'!
 'Description '!
-!provides: 'Vim' 1 123!
+!provides: 'Vim' 1 124!
 SystemOrganization addCategory: #Vim!
 
 
@@ -437,6 +437,22 @@ appendEndOfLine: evt
 	self reset.
 	^ #insert.! !
 
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 06:10:58'!
+beginningOfWord
+	"Answer index of the start of the word under the cursor."
+	| character index stopIndex text |
+	
+	index := pointBlock stringIndex - 1.
+	stopIndex := pointBlock textLine first.
+	text := self text.
+	
+	[
+		character := text at: index.
+		(character isAlphaNumeric or: [ character = $_]) and: [ index < stopIndex ]
+	] whileTrue: [ index := index - 1 ].
+	
+	^ index + 1.! !
+
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:48:05'!
 changeCursorToEndOfLine: evt
 	"Delete from cursor to end of line and enter insert mode."
@@ -676,21 +692,21 @@ deleteCursorToEndOfLine: evt
 	self selectFrom: index to: last.
 	self cut.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:46:39'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 06:11:59'!
 deleteEndOfWord: evt
 	"Delete the end of the word containing the cursor."
-	| allText atEndOfLine range startIndex stopIndex |
+	| allText atEndOfLine startIndex stopIndex |
 	
-	"editor pointBlock returns a CharacterBlock object."
 	startIndex := self pointBlock stringIndex.
-	range := self wordRangeIncluding: startIndex.
-	stopIndex := range last.
+	stopIndex := self endOfWord..
 	allText := self text.
 	atEndOfLine := stopIndex = allText size or: [ allText at: stopIndex + 1 :: isLineSeparator].
-	atEndOfLine ifFalse: [ stopIndex := stopIndex + 1 ].
+	stopIndex logAs: 'stopIndex'.
+	atEndOfLine logAs: 'atEndOfLine'.
+	atEndOfLine ifFalse: [ stopIndex := stopIndex - 1 ].
 	self selectFrom: startIndex to: stopIndex.
 	self cut.
-	
+	atEndOfLine ifTrue: [ self moveCursor: [:position | startIndex - 1] forward: false event: evt].
 	self reset.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 20:02:11'!
@@ -739,6 +755,22 @@ deselect
 	"Deselect the current selection, if any."
 	
 	markBlock := pointBlock.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 06:10:22'!
+endOfWord
+	"Answer index of the end of the word under the cursor."
+	| character index stopIndex text |
+	
+	index := pointBlock stringIndex + 1.
+	stopIndex := pointBlock textLine last.
+	text := self text.
+	
+	[
+		character := text at: index.
+		(character isAlphaNumeric or: [ character = $_]) and: [ index < stopIndex ]
+	] whileTrue: [ index := index + 1 ].
+	
+	^ index - 1.! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:18:51'!
 findCharacter: evt
