@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 7:16:24 pm'!
+'From Cuis7.3 [latest update: #6961] on 2 January 2025 at 7:27:41 pm'!
 'Description '!
-!provides: 'Vim' 1 121!
+!provides: 'Vim' 1 122!
 SystemOrganization addCategory: #Vim!
 
 
@@ -271,7 +271,7 @@ vimMode: aSymbol
 	vimMode := aSymbol.
 	self redrawNeeded.! !
 
-!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/2/2025 18:58:36'!
+!InnerTextMorph class methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:26:16'!
 initialize
 	"Every time this is modified, evaluate the following: InnerTextMorph initialize"
 		
@@ -316,7 +316,7 @@ initialize
 		#g -> #noop:.
 		
 		"Scroll to bottom."
-		#G -> #cursorLastLine:.
+		#G -> #cursorToLine:.
 		
 		"Scroll to top."
 		#gg -> #cursorFirstLine:.
@@ -549,35 +549,6 @@ cursorFirstNonBlankOfLine: evt
 	
 	self reset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:07:06'!
-cursorLastLine: evt
-	"Move cursor to the beginning of the last line."
-	| lineNumber size |
-	
-	"If there is a count, go to that line."
-	lineNumber := morph vimCount.
-	lineNumber logAs: 'lineNumber'.
-	lineNumber
-		ifNil: [
-			size := morph model actualContents size.
-			self moveCursor: [:position | size] forward: false event: evt.
-			self cursorBeginningOfLine: evt.
-		]
-		ifNotNil: [
-			| column index line lines lineSize |
-
-			lines := textComposition lines.
-			line := lines at: (lineNumber min: lines size).
-			lineSize := line last - line first.
-			column := pointBlock stringIndex - pointBlock textLine first.
-			index := line first + (column min: lineSize).
-			self moveCursor: [:position | index] forward: true event: evt.
-		].
-	
-	self reset.
-	
-! !
-
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:06:54'!
 cursorNextWord: evt
 	"Move cursor to beginning of the next word."
@@ -607,6 +578,35 @@ cursorPreviousWord: evt
 	].	
 	
 	self reset.! !
+
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/2/2025 19:27:18'!
+cursorToLine: evt
+	"Move cursor to given line or the last line."
+	| lineNumber size |
+	
+	"If there is a count, go to that line."
+	lineNumber := morph vimCount.
+	lineNumber logAs: 'lineNumber'.
+	lineNumber
+		ifNil: [
+			size := morph model actualContents size.
+			self moveCursor: [:position | size] forward: false event: evt.
+			self cursorBeginningOfLine: evt.
+		]
+		ifNotNil: [
+			| column index line lines lineSize |
+
+			lines := textComposition lines.
+			line := lines at: (lineNumber min: lines size).
+			lineSize := line last - line first.
+			column := pointBlock stringIndex - pointBlock textLine first.
+			index := line first + (column min: lineSize).
+			self moveCursor: [:position | index] forward: true event: evt.
+		].
+	
+	self reset.
+	
+! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 07:32:16'!
 cut
