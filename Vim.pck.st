@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 8:25:34 am'!
+'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 8:35:12 am'!
 'Description '!
-!provides: 'Vim' 1 128!
+!provides: 'Vim' 1 129!
 SystemOrganization addCategory: #Vim!
 
 
@@ -396,7 +396,7 @@ initialize
 	}.
 ! !
 
-!TextComposition methodsFor: '*Vim' stamp: 'RMV 1/3/2025 08:22:32'!
+!TextComposition methodsFor: '*Vim' stamp: 'RMV 1/3/2025 08:34:14'!
 displayTextCursorAtX: x top: top bottom: bottom emphasis: emphasis on: aCanvas textLeft: textLeft
 	"x, top, bottom, textLeft are relative to the morph currently being drawn."
 	| textCursorColor x1 isBold isItalic x0 h w halfW r d extraW corner origin |
@@ -406,7 +406,9 @@ displayTextCursorAtX: x top: top bottom: bottom emphasis: emphasis on: aCanvas t
 	
 	"textCursorColor := Theme current textCursor."
 	textCursorColor := editor morph modeColor.
-	textCursorColor = Color transparent ifTrue: [textCursorColor := Color black].
+	textCursorColor = Color transparent
+		ifTrue: [textCursorColor := Color black]
+		ifFalse: [isBold := true].
 	
 	h := bottom - top.
 	w := isBold
@@ -442,8 +444,7 @@ displayTextCursorAtX: x top: top bottom: bottom emphasis: emphasis on: aCanvas t
 
 	aCanvas
 		line: x0+halfW@(bottom-w-w+halfW) to: x1+halfW@top
-		width: w + 1
-		color: textCursorColor! !
+		width: w color: textCursorColor! !
 
 !TextComposition methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:36:12'!
 selectionStopIndex
