@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 4 January 2025 at 8:13:27 am'!
+'From Cuis7.3 [latest update: #6961] on 4 January 2025 at 8:42:35 am'!
 'Description '!
-!provides: 'Vim' 1 136!
+!provides: 'Vim' 1 138!
 SystemOrganization addCategory: #Vim!
 
 
@@ -624,45 +624,52 @@ cursorFirstNonBlankOfLine: evt
 	
 	self vimReset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 21:19:04'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/4/2025 08:42:23'!
 cursorNextWord: evt
 	"Move cursor to beginning of the next word."
-	| char index stopIndex text |
+	| index stopIndex text |
 	
+	index := self pointBlock stringIndex.
 	text := self text.
-	index := self pointBlock stringIndex + 1.
 	stopIndex := text size.
 	
-	[ index <= stopIndex and: [(text at: index) isAlphaNumeric] ] whileTrue: [ index := index + 1 ].
-	index < stopIndex ifTrue: [
-		char := text at: index.
-		char = Character space or: [char isLineSeparator] :: ifTrue: [ index := index + 1 ].
+	index < stopIndex :: ifTrue: [			
+		"If we are at a line separator, move forward one more character."
+		text at: index :: isLineSeparator
+			ifTrue: [ index := index + 1 ]
+			ifFalse: [
+				"Find the first non-alphanumeric character after index."
+				[index < stopIndex and: [text at: index :: isAlphaNumeric]] whileTrue: [ index := index + 1 ].
+				text at: index :: asciiValue logAs: 'stopped at ascii'.
+				
+				"If none was found or we are on a line separator, move forward one."
+				index = stopIndex or: [text at: index :: isLineSeparator] ::  ifTrue: [ index := index + 1 ].
+			].
+
+		self moveCursor: [:position | index] forward: true event: evt.
 	].
-		
-	self moveCursor: [:position | index] forward: true event: evt.
-		
+			
 	self vimReset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/4/2025 08:12:36'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/4/2025 08:19:00'!
 cursorPreviousWord: evt
 	"Move cursor to the beginning of the previous word."	
-	| found index text |
+	| index text |
 	
 	index := self pointBlock stringIndex.
 	index > 1 ifTrue: [
 		text := self text.
-
 		index := index - 1.
+		
+		"If we are at a line separator, move back one more character."
 		text at: index :: isLineSeparator ifTrue: [ index := index - 1 ].
-
-		"Find index of first non-alphanumeric character before cursor position."
-		found := false.
-		[index > 1 and: [found not]] whileTrue: [
-			found := text at: index :: isAlphaNumeric not.
-			found ifFalse: [ index := index - 1 ].
-		].
-	
-		index = 0 or: [text at: index :: isLineSeparator] :: ifTrue: [ index := index + 1 ].				
+		
+		"Find the first non-alphanumeric character before index."
+		[index > 1 and: [text at: index :: isAlphaNumeric]] whileTrue: [ index := index - 1 ].
+		
+		"If none was found or we are on a line separator character, move forward one,"
+		index = 0 or: [text at: index :: isLineSeparator] :: ifTrue: [ index := index + 1 ].
+					
 		self moveCursor: [:position | index] forward: false event: evt.		
 	].
 	
