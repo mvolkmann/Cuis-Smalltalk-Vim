@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 4 January 2025 at 8:42:35 am'!
+'From Cuis7.3 [latest update: #6961] on 4 January 2025 at 8:46:57 am'!
 'Description '!
-!provides: 'Vim' 1 138!
+!provides: 'Vim' 1 139!
 SystemOrganization addCategory: #Vim!
 
 
@@ -651,7 +651,7 @@ cursorNextWord: evt
 			
 	self vimReset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/4/2025 08:19:00'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/4/2025 08:46:50'!
 cursorPreviousWord: evt
 	"Move cursor to the beginning of the previous word."	
 	| index text |
@@ -667,7 +667,7 @@ cursorPreviousWord: evt
 		"Find the first non-alphanumeric character before index."
 		[index > 1 and: [text at: index :: isAlphaNumeric]] whileTrue: [ index := index - 1 ].
 		
-		"If none was found or we are on a line separator character, move forward one,"
+		"If none was found or we are on a line separator character, move forward one."
 		index = 0 or: [text at: index :: isLineSeparator] :: ifTrue: [ index := index + 1 ].
 					
 		self moveCursor: [:position | index] forward: false event: evt.		
