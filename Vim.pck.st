@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 5:54:04 pm'!
+'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 6:47:47 pm'!
 'Description '!
-!provides: 'Vim' 1 131!
+!provides: 'Vim' 1 134!
 SystemOrganization addCategory: #Vim!
 
 
@@ -33,11 +33,6 @@ logAs: aString
     template := 'In {1}, {2} is a {3} = {4}'.
     message := template format: {sender. aString. self class name. self}.
     message print.! !
-
-!CharacterBlock methodsFor: '*Vim' stamp: 'RMV 1/1/2025 10:32:05'!
-text
-	"I added this because it is needed by the Vim package."
-	^ text.! !
 
 !InnerTextMorph methodsFor: '*Vim' stamp: 'RMV 1/3/2025 17:49:47'!
 drawOn: aCanvas
@@ -447,12 +442,7 @@ displayTextCursorAtX: x top: top bottom: bottom emphasis: emphasis on: aCanvas t
 		line: x0+halfW@(bottom-w-w+halfW) to: x1+halfW@top
 		width: w color: textCursorColor! !
 
-!TextComposition methodsFor: '*Vim' stamp: 'RMV 12/31/2024 16:36:12'!
-selectionStopIndex
-
-	^ selectionStopBlock stringIndex.! !
-
-!Editor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 19:20:49'!
+!Editor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 18:08:17'!
 moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	"Private - Move cursor.
 	directionBlock is a one argument Block that computes the new Position from a given one.
@@ -460,6 +450,8 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 	| selecting shiftPressed indices newPosition vimMode |
 
 	shiftPressed := aKeyboardEvent notNil and: [aKeyboardEvent shiftPressed].
+	"The logic for determine if moving the cursor should select text
+	was modified to accomodate the Vim modes visual and visualLine."
 	selecting := shiftPressed or: [morph vimMode = #visual] or: [morph vimMode = #visualLine].
 	indices := self
 		setIndices: selecting
@@ -468,6 +460,8 @@ moveCursor: directionBlock forward: forward event: aKeyboardEvent
 
 	vimMode := morph isKindOf: InnerTextMorph :: ifTrue: [ morph vimMode ] ifFalse: nil.
 	
+	"When in Vim command mode and using commands that move the cursor,
+	we don't want to select text."
 	selecting and: [ vimMode ~= #command ] ::
 		ifTrue: [ self selectMark: (indices at: #fixed) point: newPosition - 1 ]
 		ifFalse: [ self deselectAndPlaceCursorAt: newPosition ]! !
@@ -703,7 +697,7 @@ cut
 	self replaceSelectionWith: self nullText.
 	self clipboardTextPut: selection.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 17:53:41'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 18:32:58'!
 deleteAWord: evt
 	"Delete the word containing the cursor."
 	| atEndOfLine startIndex stopIndex text |
@@ -712,7 +706,7 @@ deleteAWord: evt
 	stopIndex := self endOfWord.
 	stopIndex logAs: 'stopIndex'.
 	
-	text := pointBlock text.
+	text := self text.
 	atEndOfLine := stopIndex = text size or: [ text at: stopIndex + 1 :: isLineSeparator].
 
 	startIndex > 1 and: [(text at: startIndex - 1) = Character space] ::
@@ -844,7 +838,7 @@ findCharacter: evt
 	
 	morph pendingFind: true! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/1/2025 18:56:02'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 18:35:12'!
 indexOfNext: aCharacter
 	"Answer the index of next occurrence of aCharacter in the current line."
 	| offset startIndex stopIndex substring |
@@ -852,23 +846,11 @@ indexOfNext: aCharacter
 	"Get the characters from the cursor position to the end of the current line."
 	startIndex := pointBlock stringIndex + 1.
 	stopIndex := pointBlock textLine last.
-	substring := pointBlock text string copyFrom: startIndex to: stopIndex.
+	substring := self text string copyFrom: startIndex to: stopIndex.
 
 	offset := substring findString: aCharacter asString.
 	offset > 0 ifTrue: [^ startIndex + offset - 1] ifFalse: [^ 0].
 	! !
-
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 12/31/2024 15:32:35'!
-initialize
-	emphasisHere := #().
-	initialSelectionStart := nil.
-	initialSelectionStop := nil.
-	doWordSelection := false.
-	doParagraphSelection := false.
-	defaultFont := nil.
-	
-	"TODO: Why does this affect Text Editor and Workspace windows, but not Browser code panes?"
-	"defaultFont := FontFamily familyName: 'JetBrains Mono NL' pointSize: 14."! !
 
 !TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 17:53:41'!
 insertAtBeginningOfLine: evt
