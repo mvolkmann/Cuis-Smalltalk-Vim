@@ -1,39 +1,48 @@
 # Cuis-Smalltalk-Vim
 
 This is a package for Cuis Smalltalk that adds support for a subset of Vim
-in add editable text areas.
+in al editable text areas.
 
-Initially this will only support the Vim keystrokes that I use most often.
-If it is missing support for Vim keystrokes that you use,
-please let me know by creating an issue and I will consider adding it.
+Currently only the Vim commands that I use most often are supported.
+If it is missing support for Vim commands that you use,
+please let me know by creating an issue and I will consider adding them.
 
-I'm not aware of any issues with using this package, but for now
-only use this in fresh images that do not contain important code changes
-you cannot afford to lose.
-So far this has only been tested in macOS.
+Currently this package has only been tested in macOS, but I don't
+foresee any differences when running in Linux or Windows.
 
 To install this, clone the repository and
 evaluate `Feature require: 'Vim'` in a Workspace.
 This will enable use of Vim commands in all instances of `InnerTextMorph`
-which, as far as I know, includes all places where text can be entered and edited.
+which seems to include all places where text can be entered and edited
+in the development environment.
 
-The initial Vim mode in each area is "insert".
+Please report any problems you encounter with this package
+or feature requests by creating issues in this GitHub repository.
+
+## Vim Modes
+
+The initial Vim mode in each text area is "insert". You should not
+experience any differences in functionality while in this mode.
+
 To switch to "command" mode, press the escape key.
-When in "command" mode, the background of the editing area
-changes to a very light pink.
+When in "command" mode, the text cursor changes to red.
+Also, a red border is drawn on the right edge of the text area
+to remind you that you are in command mode.
 
-I modified the `TextEditor` instance method `initialize`
-to set the font to "JetBrains Mono NL" which is a monospace font.
-But it is not taking effect in the code panew of System Browser windows.
-I need to fix that still.
+To switch to "visual" mode where text can be selected
+by simply moving the cursor, press the "v" key.
+A blue border will be drawn on the right edge of the text area
+to remind you that you are in visual mode.
 
-Please report any problems you encounter with this packages
-or feature requests by creating an issue in this GitHub repository.
+To switch to "visualLine" mode where complete lines of text can be selected
+by simply moving the cursor down or up, press the "V" key.
+A purple border will be drawn on the right edge of the text area
+to remind you that you are in visualLine mode.
 
 ## New Classes
 
-This package adds the class `Vim` whose only purpose is to
-invoke the `InnerTextMorph` class method `initialize`
+This package adds the class `Vim` whose only purpose is
+to invoke the `InnerTextMorph` class method `initialize`
 when the `Vim` package is installed.
 This happens in its class method `initialize`.
 
@@ -52,7 +61,13 @@ moving the cursor should change the current text selection.
 
 New instance variables `vimCommand`, `vimCount`, and`vimMode`
 were added to the class definition. 
-TODO: How does the file `Vim.pck.st` know about this
+TODO: How does the file `Vim.pck.st` know about this?
+
+The class method `initialize` was added.
+This sets the class variable `VimMappings` to a `Dictionary`
+that maps symbols representing keyboard sequences to
+messages that are sent to instances of the `TextEditor` class
+to process Vim commands.
 
 The `drawOn:` method was modified to draw a right border
 whose color indicates the current Vim mode.
@@ -60,8 +75,8 @@ It is red for command mode, blue for visual mode,
 and purple for visualLine mode.
 No right border is drawn when in insert mode.
 
-The `initialize` method was modified to initialize
-the new instance variables `vimCommand`, `vimCount`, and `vimMode`.
+The `initialize` method was modified to initialize the
+new instance variables `vimCommand`, `vimCount`, and `vimMode`.
 
 The `processKeystrokeEvent:` method was modified
 to consider the current Vim mode.
@@ -89,4 +104,5 @@ that implement the currently supported subset of Vim command.
 
 Also, the `cut` method provided in the base Cuis image was modified.
 The `lineSelectAndEmptyCheck:` message send was commented out because
-it breaks the ability to delete an empty line using the Vim `dd` command
+it breaks the ability to delete an empty line using the Vim `dd` command.
+
