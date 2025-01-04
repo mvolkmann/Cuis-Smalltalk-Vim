@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 6:47:47 pm'!
+'From Cuis7.3 [latest update: #6961] on 3 January 2025 at 9:19:32 pm'!
 'Description '!
-!provides: 'Vim' 1 134!
+!provides: 'Vim' 1 135!
 SystemOrganization addCategory: #Vim!
 
 
@@ -624,33 +624,47 @@ cursorFirstNonBlankOfLine: evt
 	
 	self vimReset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 17:53:41'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 21:19:04'!
 cursorNextWord: evt
 	"Move cursor to beginning of the next word."
-	| atLastWordInLine |
+	| char index stopIndex text |
 	
-	self moveCursor: [:position | self nextWordStart: position] forward: true event: evt.
+	text := self text.
+	index := self pointBlock stringIndex + 1.
+	stopIndex := text size.
 	
-	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
-	atLastWordInLine ifTrue: [
-		"Do it again to move to the first word on the next line."
-		self moveCursor: [:position | self nextWordStart: position] forward: true event: evt.
+	[ index <= stopIndex and: [(text at: index) isAlphaNumeric] ] whileTrue: [ index := index + 1 ].
+	index < stopIndex ifTrue: [
+		char := text at: index.
+		char = Character space or: [char isLineSeparator] :: ifTrue: [ index := index + 1 ].
 	].
-	
+		
+	self moveCursor: [:position | index] forward: true event: evt.
+		
 	self vimReset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 17:53:41'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/3/2025 21:18:08'!
 cursorPreviousWord: evt
-	"Move cursor to the beginning of the previous word."
-	| atLastWordInLine |
+	"Move cursor to the beginning of the previous word."	
+	| char index text |
 	
-	self moveCursor: [:position | self previousWordStart: position] forward: false event: evt.
-	
-	atLastWordInLine := pointBlock stringIndex = pointBlock textLine last.
-	atLastWordInLine ifTrue: [
-		"Do it again to move to the last word on the previous line."
-		self moveCursor: [:position | self previousWordStart: position] forward: false event: evt.
-	].	
+	text := self text.
+	index := self pointBlock stringIndex.
+	index > 1 ifTrue: [
+		index := index - 2.
+		[ index >= 1 and: [(text at: index) isAlphaNumeric] ] whileTrue: [ index := index - 1 ].
+		index := index + 1.
+		index logAs: 'stopped at index'.
+		text at: index :: logAs: 'stopped at char'.
+		index = 0
+			ifTrue: [ index = 1 ]
+			ifFalse: [
+				char := text at: index.
+				char = Character space ifTrue: [ index := index - 1 ].
+			].
+			
+		self moveCursor: [:position | index] forward: false event: evt.
+	].
 	
 	self vimReset.! !
 
