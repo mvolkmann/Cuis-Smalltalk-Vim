@@ -68,6 +68,8 @@ This sets the class variable `VimMappings` to a `Dictionary`
 that maps symbols representing keyboard sequences to
 messages that are sent to instances of the `TextEditor` class
 to process Vim commands.
+Browse this method to see all the Vim commands
+that are currently supported.
 
 The `drawOn:` method was modified to draw a right border
 whose color indicates the current Vim mode.
@@ -100,7 +102,7 @@ It also makes the text cursor bold when not in insert mode.
 ### TextEditor
 
 The method category `*Vim` was added, along with 49 methods
-that implement the currently supported subset of Vim command.
+that implement the currently supported subset of Vim commands.
 
 Also, the `cut` method provided in the base Cuis image was modified.
 The `lineSelectAndEmptyCheck:` message send was commented out because
