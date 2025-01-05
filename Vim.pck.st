@@ -1,6 +1,6 @@
-'From Cuis7.3 [latest update: #6961] on 4 January 2025 at 8:46:57 am'!
+'From Cuis7.3 [latest update: #6968] on 5 January 2025 at 8:04:28 am'!
 'Description '!
-!provides: 'Vim' 1 139!
+!provides: 'Vim' 1 141!
 SystemOrganization addCategory: #Vim!
 
 
@@ -624,12 +624,12 @@ cursorFirstNonBlankOfLine: evt
 	
 	self vimReset.! !
 
-!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/4/2025 08:42:23'!
+!TextEditor methodsFor: '*Vim' stamp: 'RMV 1/5/2025 08:04:26'!
 cursorNextWord: evt
 	"Move cursor to beginning of the next word."
 	| index stopIndex text |
 	
-	index := self pointBlock stringIndex.
+	index := self pointBlock stringIndex + 1.
 	text := self text.
 	stopIndex := text size.
 	
@@ -640,10 +640,9 @@ cursorNextWord: evt
 			ifFalse: [
 				"Find the first non-alphanumeric character after index."
 				[index < stopIndex and: [text at: index :: isAlphaNumeric]] whileTrue: [ index := index + 1 ].
-				text at: index :: asciiValue logAs: 'stopped at ascii'.
 				
-				"If none was found or we are on a line separator, move forward one."
-				index = stopIndex or: [text at: index :: isLineSeparator] ::  ifTrue: [ index := index + 1 ].
+				"Find the next non-whitespace character after index."
+				[index < stopIndex and: [text at: index :: isSeparator]] whileTrue: [ index := index + 1 ].
 			].
 
 		self moveCursor: [:position | index] forward: true event: evt.
